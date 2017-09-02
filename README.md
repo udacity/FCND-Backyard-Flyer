@@ -1,6 +1,7 @@
 # FlightND Project 0
 
-TODO:
+## Dependencies
 
-* setup instructions
-* project instructions
+* flask
+* python-socketio
+* eventlet
