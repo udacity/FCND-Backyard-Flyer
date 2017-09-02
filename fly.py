@@ -20,15 +20,32 @@ app = Flask(__name__)
 
 f = fifo()
 mav = mavlink.MAVLink(f)
+prev_data = None
+
+@sio.on('heartbeat')
+def heartbeat(sid, data):
+    print("HEARTBEAT RECEIVED ...")
+    print(data)
+    # msg = mav.decode(bytes(data["mavmsg"], 'utf-8'))
+    # print(msg)
 
 @sio.on('telemetry')
 def telemetry(sid, data):
-    print("Message received ...")
-    msg = mavlink.MAVLink_heartbeat_message(2, 0, 0, 0, 0, 3)
-    packed = msg.pack(mav)
-    chars = [c for c in packed]
-    print(chars)
-    sio.emit("command", data={'mavmsg': chars}, skip_sid=True)
+    if data:
+        print("Message received ... ", data)
+        prev_data = data
+        y = data["y"]
+
+        if y > 5:
+            sio.emit("command", data={"mavmsg": "land"}, skip_sid=True)
+        elif y < 0.2:
+            sio.emit("command", data={"mavmsg": "takeoff"}, skip_sid=True)
+
+        # msg = mavlink.MAVLink_heartbeat_message(2, 0, 0, 0, 0, 3)
+        # packed = msg.pack(mav)
+        # chars = [c for c in packed]
+        # print("Sending MAVLink message ...", chars)
+        # sio.emit("command", data={'mavmsg': chars}, skip_sid=True)
 
 
 @sio.on('connect')
@@ -42,15 +59,3 @@ if __name__ == '__main__':
 
     # deploy as an eventlet WSGI server
     eventlet.wsgi.server(eventlet.listen(('', 4567)), app)
-
-    # msg = mavlink.MAVLink_heartbeat_message(2, 0, 0, 0, 0, 3)
-    # packed = msg.pack(mav)
-    # print("Packed message ...", packed)
-    # print([c for c in packed])
-
-    # msg = mavlink.MAVLink_system_time_message(100, 50)
-    # packed = msg.pack(mav)
-    # print("Packed message ...", packed)
-
-
-
