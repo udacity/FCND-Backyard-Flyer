@@ -8222,6 +8222,7 @@ class MAVLink(object):
                     except struct.error as emsg:
                         raise MAVError('Unable to unpack MAVLink header: %s' % emsg)
                     mapkey = msgId
+                print(magic, mlen, seq, srcSystem, srcComponent, msgId)
                 if (incompat_flags & MAVLINK_IFLAG_SIGNED) != 0:
                     signature_len = MAVLINK_SIGNATURE_BLOCK_LEN
                 else:
