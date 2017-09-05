@@ -7,6 +7,7 @@ import sys
 import numpy as np
 from pymavlink import mavutil
 import mavlink
+import utm
 
 
 class Connection:
@@ -59,6 +60,9 @@ class Connection:
     def send_local_position_command(self, x, y, z):
         self.master.mav.command_int_send(self.target_system, self.target_component, mavlink.MAV_FRAME_LOCAL_NED, mavlink.MAV_CMD_NAV_TAKEOFF_LOCAL, 1, 0, 0, 0, 0, 0, x, y, z)
 
+	def send_mav_command(self,command_type, param1, param2, param3, param4, x, y, z):
+		self.master.mav.command_int_send(self.target_system, self.target_component, mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT, command_type, 1, 0, param1, param2, param3, param4, x, y, z)
+	
     def arm_drone(self):
         self.master.arducopter_arm()
 
@@ -74,20 +78,15 @@ class Connection:
         self.master.close()
 
 
-class drone_vehicle:
-	#gps_location
-    #gps_home
-    #local_position
-    #motors_armed
-    #is_armable #Optional if I can that data
-    #velocity
-    
+class Drone:
+
     def __init__(self):
-        self.gps_location = []
-        self.gps_home = []
+        self.global_position = []
+        self.global_home = []
         self.motors_armed = []
-        self.velocity = []
-        self.local_position = []
+        self.global_velocity = []
+		self.heading = []
+
         self.armed = False
         
     #TODO: this function will be completed for the students
@@ -97,65 +96,70 @@ class drone_vehicle:
     def disconnect(self):
         self.connection.disconnect()
         
-    #The student should set the mode to guided, arm the vehicle (with checks) and return the global location as the home
+    #The student should set the mode to guided, arm the vehicle (with checks) and save the home position as the position it is armed
     def arm_vehicle(self):
-        #TODO: Insert mavlink command for setting the mode to Guided
-        #mav.mission_item_send(mav.target_system, mav.target_component, mav.seq, frame, command, current, autocontinue, param1, param2, param3, param4, x, y, z, mission_type, force_mavlink1=False):
-        
-        #TODO: Insert the mavlink command for arming 
-        #vehicle.armed = True
-        self.connection.arm_drone()
+		
+		self.connection.send_command(mavlink.MAV_CMD_NAV_GUIDED_ENABLE,1,0,0,0,0,0,0)
+		
+		while(~self.mode!=GUIDED):
+			time.sleep(0.5)
+		
+		self.connection.send_command(mavlink.MAV_CMD_COMPONENT_ARM_DISARM,1,0,0,0,0,0,0)
 
         while ~self.armed:
             time.sleep(1)
             
+		#Record home position
         self.gps_home = self.gps_location
         return True
 
     #TODO: the students will write this function
     def takeoff(self):
-        takeoff_pos = self.gps_home
-        takeoff_pos[2] = takeoff_pos[2]+1.5
-        
-        #TODO: Insert mavlink command
-        #vehicle.simple_goto(takeoff_pos)
-        self.connection.send_local_position_command(0, 0, -5)
-        
-        while(self.gps_position < 0.95*takeoff_pos[2]):
+        #Set the takeoff position 
+		take_off_pos = self.gps_home
+		take_off_pos[2] = take_off_pos+1.5
+        self.connection.send_command(mavlink.MAV_CMD_NAV_TAKEOFF,0,0,0,0,take_off_pos[0],take_off_pos[1],take_off_pos[2])
+		
+		#Monitor the vehicle altitude until it is within 95% of the specified takeoff altitude
+        while(self.gps_location[2] < 0.95*take_off_pos[2]):
             time.sleep(0.1)
         
         return True
 
-    #TODO: the students will write this function
+    #TODO: the students will write this function. The target can either be a GPS target or a local target
     def goto(self, target):
-        #TODO: Insert mavlink command
-        #vehicle.simple_goto(target)
         
-        while(_distance_between(target,self.local_position)>0.5):
+		self.connection.send_comand(mavlink.MAV_CMD_NAV_LOITER_UNLIM,0,0,0,0,target[0],target[1],target[2])
+        local_position = global_to_local(self.global_position,self.global_home)
+		
+		#Terminate when within 0.5m of the target
+        while(distance_between(target,local_position)>0.5):
             time.sleep(0.1)
             
         return True
     
     #TODO: the students will write this function
     def land(self):
+		#Set the position below ground level
         land_pos = self.gps_position
         land_pos[2] = self.gps_home[2]-1.0
-            
-        #TODO: Insert mavlink command
-        #vehicle.simple_goto(land_pos)
+		
+		self.connection.send_command(mavlink.MAV_CMD_NAV_LAND,0,0,0,0,land_pos[0],land_pos[1],land_pos[2])        
     
+		#Monitor both the position and the velocity
         while self.gps_location[2]-land_pos[2]<0.1:
             if self.gps_location[2]-self.gps_home[2]<0.1 :
-                if self.velocity[2]<0.1 :
+                if self.global_velocity[2]<0.1 :
                     return True
                 
-        
+			time.sleep(0.1)
         return False
 
     #TODO: the students will fill out this function
     def disarm_vehicle(self):
-        #TODO: 
-        #vehicle.armed = True
+        
+		self.connection.send_command(mavlink.MAV_CMD_COMPONENT_ARM_DISARM,0,0,0,0,0,0,0)
+		
         while self.armed:
             time.sleep(1)
         
@@ -170,10 +174,14 @@ class drone_vehicle:
         elif name is 'HEARTBEAT':
             self.armed = (msg.base_mode & mavlink.MAV_MODE_FLAG_SAFETY_ARMED) != 0
             # TODO: correctly parse the state information
-        #elif name is 'GPS_INT':
-            # TODO: populate
-        #elif name is 'LOCAL_POSITION':
-            # TODO: populate:
+        elif name is 'GLOBAL_POSITION_INT':
+			self.global_position[0] = float(msg.lat)/(10^7)
+			self.global_position[1] = float(msg.lon)/(10^7)
+			self.global_position[2] = float(msg.relative_alt)/1000
+			self.global_velocity[0] = float(msg.vx)/100
+			self.global_velocity[1] = float(msg.vy)/100
+			self.global_velocity[2] = -float(msg.vz)/100
+			self.heading = float(msg.heading)/100
         # TODO: add other messages of interest....
         else:
             print name
@@ -189,33 +197,56 @@ def takeoff_and_fly_box(drone):
 	drone.takeoff()
 	print 'Successfully launched to %f m height'.format(drone.local_position[2])
 	
-	box_waypoints = calculate_box(drone.gps_home)
+	#Box waypoints specified in global frame
+	box_waypoints = calculate_box(drone.global_home)
 	
 	for i in range(4):
 		next_waypoint = box_waypoints[i,:]
-		print 'Going to next waypoint: (%f,%f,%f)'.format(next_waypoint[1], next_waypoints[2], next_waypoint[3])
+		print 'Going to next waypoint: (%f,%f,%f)'.format(next_waypoint[0], next_waypoints[1], next_waypoint[2])
 		drone.goto(next_waypoint)
-		print 'Arrived at waypoint, vehicle position = (%f,%f,%f)'.format(drone.gps_location[1], drone.gps_location[2], drone.gps_location[3])
+		print 'Arrived at waypoint, vehicle position = (%f,%f,%f)'.format(drone.global_position[0], drone.global_position[1], drone.global_position[2])
 	
 	print 'Landing'
 	drone.land()
 
 	print 'Disarming Vehicle'
 	drone.disarm_vehicle()
-	
 
-def _distance_between(position1,position2):
+def calculate_box(global_home):
+	global_waypoints = np.zeros(4,3)
+	local_waypoints = [[10.0,0.0,-3.0],[10.0,10.0,-3.0],[0.0,10.0,-3.0],[0.0,0.0,-3.0]]
+	for i in range(4):
+		global_waypoints[i,:] = local_to_global(local_waypoints[i,:],global_home)
+	
+	return global_waypoints
+
+#Helper functions provided to the students
+
+#Convert a global position (lon,lat,up) to a local position (north,east,down) relative to the home position
+def global_to_local(global_position,global_home):
+	(east_home,north_home,_,_) = utm.from_latlon(global_home[1],global_home[0])
+	(east,north,_,_) = utm.from_latlon(global_position[0],global_position[1])
+	local_position = [north-north_home,east-east_home,-(global_position[2]-global_home[2]]
+	return local_position
+
+#Convert a local position (north,east,down) relative to the home position to a global position (lon,lat,up)
+def local_to_global(local_position,global_home):
+	(east_home,north_home,zone_number,zone_letter) = utm.from_latlon(global_home[1],global_home[0])
+	(lat,lon) = utm.to_latlon(east_home+local_position[1],north_home+local_position[0],zone_number,zone_letter)
+	lla = [lon,lat,-local_position[2]+global_home[2]]	
+	
+#Solve for the distance between two local positions
+def distance_between(position1,position2):
 	sum_square = 0.0
 	for i in range(0,2):
-		sum_square = sum_square + np.pow(position1[i]-position2[i])
-		
+		sum_square = sum_square + np.pow(position1[i]-position2[i])		
 	return np.sqrt(sum_square)
 
 
 
 # run the script here to just do a couple simple things to see if it is working
 if __name__ == "__main__":
-    drone = drone_vehicle()
+    drone = Drone()
     drone.connect("tcp:127.0.0.1:5760")
 
     time.sleep(20)
