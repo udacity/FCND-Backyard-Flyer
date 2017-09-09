@@ -99,12 +99,12 @@ class Drone:
     def __init__(self):
         self.global_position = []
         self.global_home = []
-        self.motors_armed = []
+        self.motors_armed = False;
         self.global_velocity = []
         self.heading = []
-
-        self.armed = False
-
+		self.mode = [];
+		
+		
     #TODO: this function will be completed for the students
     def connect(self, device):
         self.connection = Connection(device, self.decode_mav_msg)
@@ -116,17 +116,18 @@ class Drone:
     def arm_vehicle(self):
         self.connection.send_mav_command(mavlink.MAV_CMD_NAV_GUIDED_ENABLE, 1, 0,
                                      0, 0, 0, 0, 0)
-
-        while (~self.mode != GUIDED):
-            time.sleep(0.5)
+		
+		#Ignore for right now
+        #while (~self.mode != GUIDED):
+        #    time.sleep(0.5)
 
         self.connection.send_mav_command(mavlink.MAV_CMD_COMPONENT_ARM_DISARM, 1,
                                      0, 0, 0, 0, 0, 0)
 
-        while ~self.armed:
+        while ~self.motors_armed:
             time.sleep(1)
 
-#Record home position
+	#Record home position
         self.gps_home = self.gps_location
         return True
 
@@ -181,7 +182,7 @@ class Drone:
         self.connection.send_mav_command(mavlink.MAV_CMD_COMPONENT_ARM_DISARM, 0,
                                      0, 0, 0, 0, 0, 0)
 
-        while self.armed:
+        while self.motors_armed:
             time.sleep(1)
 
         return True
@@ -193,8 +194,8 @@ class Drone:
         if name is 'STATUSTEXT':
             print(msg.text)
         elif name is 'HEARTBEAT':
-            self.armed = (
-                msg.base_mode & mavlink.MAV_MODE_FLAG_SAFETY_ARMED) != 0
+			print('Heartbeat Message')
+			self.motors_armed = (msg.base_mode & mavlink.MAV_MODE_FLAG_SAFETY_ARMED) != 0
             # TODO: correctly parse the state information
         elif name is 'GLOBAL_POSITION_INT':
             self.global_position[0] = float(msg.lat) / (10 ^ 7)
