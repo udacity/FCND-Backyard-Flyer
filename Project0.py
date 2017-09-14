@@ -139,15 +139,14 @@ class Drone:
         take_off_pos[0] = (take_off_pos[0])
         take_off_pos[1] = (take_off_pos[1])
         take_off_pos[2] = (take_off_pos[2])
-        print(self.global_home, take_off_pos)
         self.connection.send_mav_command(mavutil.mavlink.MAV_CMD_NAV_TAKEOFF, 0, 0, 0, 0,
                                      int(take_off_pos[0]), int(take_off_pos[1]),
                                      take_off_pos[2])
 
         # Monitor the vehicle altitude until it is within 95% of the specified takeoff altitude
-        print(self.global_position[2], take_off_pos[2])
+        # print(self.global_position[2], take_off_pos[2])
         while self.global_position[2] < 0.9 * take_off_pos[2]:
-            print(self.global_position[2], take_off_pos[2])
+            # print(self.global_position[2], take_off_pos[2])
             time.sleep(0.1)
         print("Exiting takeoff")
         return True
@@ -155,7 +154,6 @@ class Drone:
     # TODO: the students will write this function. The target can either be a GPS target or a local target
     def goto(self, target):
         print("Starting GoTo")
-        print(target)
         self.connection.send_mav_command(mavutil.mavlink.MAV_CMD_NAV_LOITER_UNLIM, 0, 0, 0, 0, int(target[1]*10**7), int(target[0]*10**7), target[2])
         print("Commanded target")
         local_position = global_to_local(self.global_position, self.global_home)
@@ -166,7 +164,7 @@ class Drone:
             time.sleep(0.1)            
             local_position = global_to_local(self.global_position,self.global_home)
             distance_to_target=distance_between(target_position,local_position)
-            print(distance_to_target)
+            # print(distance_to_target)
 
 
         return True
@@ -175,19 +173,17 @@ class Drone:
     def land(self):
         #Set the position below ground level
         land_pos = np.copy(self.global_position)
-        land_pos[2] = self.global_home[2] - 1.0
+        land_pos[2] = self.global_home[2]
 
         self.connection.send_mav_command(mavutil.mavlink.MAV_CMD_NAV_LAND, 0, 0, 0, 0,
-                                     int(land_pos[0]), int(land_pos[1]), 5.0)
+                                     int(land_pos[0]), int(land_pos[1]), land_pos[2])
 
 
         #Monitor both the position and the velocity
-        while self.global_position[2] - land_pos[2] < 0.1:
-            if self.gps_position[2] - self.global_home[2] < 0.1:
-                #if self.global_velocity[2] < 0.1:
-                return True
+        while self.global_position[2] > 1.1 * land_pos[2]:
             time.sleep(0.1)
-        return False
+        print("Finished Landing")
+        return True
 
     #TODO: the students will fill out this function
     def disarm_vehicle(self):
@@ -309,15 +305,5 @@ if __name__ == "__main__":
     time.sleep(2)
     takeoff_and_fly_box(drone)
         
-    #takeoff_and_fly_box(drone)
-    #print("Arming vehicle")
-    #drone.arm_vehicle()
-    #time.sleep(2)
-
-    #print("Taking off")
-    #drone.takeoff()
-    #print("Done with Takeoff")
-    #time.sleep(2)
-
     # terminate the connection
     drone.disconnect()
