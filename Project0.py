@@ -5,7 +5,6 @@ import time
 import sys
 import numpy as np
 from pymavlink import mavutil
-import mavlink
 import utm
 import os
 
@@ -26,6 +25,7 @@ class Connection:
         self.target_system = 0
         self.target_component = 0
 
+
     def read_thread(self):
 
         while self._running:
@@ -42,11 +42,11 @@ class Connection:
 
             # want to send a heartbeat periodically, so can just do that when we receive one
             if msg.get_type() == 'HEARTBEAT':
-                print("sending heartbeat")
+                # print("sending heartbeat")
                 # send -> type, autopilot, base mode, custom mode, system status
-                self.master.mav.heartbeat_send(mavlink.MAV_TYPE_GCS,
-                                               mavlink.MAV_AUTOPILOT_INVALID,
-                                               0, 0, mavlink.MAV_STATE_ACTIVE)
+                self.master.mav.heartbeat_send(mavutil.mavlink.MAV_TYPE_GCS,
+                                               mavutil.mavlink.MAV_AUTOPILOT_INVALID,
+                                               0, 0, mavutil.mavlink.MAV_STATE_ACTIVE)
 
         print("read ended")
 
@@ -58,26 +58,26 @@ class Connection:
                               yaw, x, y, z):
         self.master.mav.command_int_send(
             self.target_system, self.target_component,
-            mavlink.MAV_FRAME_LOCAL_NED, mavlink.MAV_CMD_NAV_WAYPOINT, 1, 0,
+            mavutil.mavlink.MAV_FRAME_LOCAL_NED, mavutil.mavlink.MAV_CMD_NAV_WAYPOINT, 1, 0,
             hold_time, acceptance_radius, fly_through, yaw, x, y, z)
 
     def send_takeoff_command(self, z):
         self.master.mav.command_int_send(
             self.target_system, self.target_component,
-            mavlink.MAV_FRAME_LOCAL_NED, mavlink.MAV_CMD_NAV_TAKEOFF_LOCAL, 1,
+            mavutil.mavlink.MAV_FRAME_LOCAL_NED, mavutil.mavlink.MAV_CMD_NAV_TAKEOFF_LOCAL, 1,
             0, 0, 0, 0, 0, x, y, z)
 
     def send_local_position_command(self, x, y, z):
         self.master.mav.command_int_send(
             self.target_system, self.target_component,
-            mavlink.MAV_FRAME_LOCAL_NED, mavlink.MAV_CMD_NAV_TAKEOFF_LOCAL, 1,
+            mavutil.mavlink.MAV_FRAME_LOCAL_NED, mavutil.mavlink.MAV_CMD_NAV_TAKEOFF_LOCAL, 1,
             0, 0, 0, 0, 0, x, y, z)
 
     def send_mav_command(self, command_type, param1, param2, param3, param4, x,
                          y, z):
         self.master.mav.command_int_send(
             self.target_system, self.target_component,
-            mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT, command_type, 1, 0, param1,
+            mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT, command_type, 1, 0, param1,
             param2, param3, param4, x, y, z)
 
     def arm_drone(self):
@@ -97,12 +97,12 @@ class Connection:
 
 class Drone:
     def __init__(self):
-        self.global_position = []
-        self.global_home = []
-        self.motors_armed = False;
-        self.global_velocity = []
-        self.heading = []
-		self.mode = [];
+        self.global_position = np.array([None, None, None]) #Longitude, Latitude, Altitude
+        self.global_home = np.array([None, None, None])
+        self.motors_armed = False
+        self.global_velocity = np.array([None, None, None])
+        self.heading = None
+        self.mode = None
 		
 		
     #TODO: this function will be completed for the students
@@ -114,72 +114,84 @@ class Drone:
 
     #The student should set the mode to guided, arm the vehicle (with checks) and save the home position as the position it is armed
     def arm_vehicle(self):
-        self.connection.send_mav_command(mavlink.MAV_CMD_NAV_GUIDED_ENABLE, 1, 0,
+        self.connection.send_mav_command(mavutil.mavlink.MAV_CMD_NAV_GUIDED_ENABLE, 1, 0,
                                      0, 0, 0, 0, 0)
 		
 		#Ignore for right now
         #while (~self.mode != GUIDED):
         #    time.sleep(0.5)
 
-        self.connection.send_mav_command(mavlink.MAV_CMD_COMPONENT_ARM_DISARM, 1,
+        self.connection.send_mav_command(mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM, 1,
                                      0, 0, 0, 0, 0, 0)
 
-        while ~self.motors_armed:
+        while self.motors_armed != True:
             time.sleep(1)
 
-	#Record home position
-        self.gps_home = self.gps_location
+        # Record home (initial) position
+        self.global_home = np.copy(self.global_position)
         return True
 
     #TODO: the students will write this function
     def takeoff(self):
-        #Set the takeoff position
-        take_off_pos = self.gps_home
-        take_off_pos[2] = take_off_pos + 1.5
-        self.connection.send_mav_command(mavlink.MAV_CMD_NAV_TAKEOFF, 0, 0, 0, 0,
-                                     take_off_pos[0], take_off_pos[1],
+        # Set the takeoff position
+        take_off_pos = [x for x in self.global_home]
+        take_off_pos[2] += 1.5
+        take_off_pos[0] = (take_off_pos[0])
+        take_off_pos[1] = (take_off_pos[1])
+        take_off_pos[2] = (take_off_pos[2])
+        print(self.global_home, take_off_pos)
+        self.connection.send_mav_command(mavutil.mavlink.MAV_CMD_NAV_TAKEOFF, 0, 0, 0, 0,
+                                     int(take_off_pos[0]), int(take_off_pos[1]),
                                      take_off_pos[2])
 
-        #Monitor the vehicle altitude until it is within 95% of the specified takeoff altitude
-        while (self.gps_location[2] < 0.95 * take_off_pos[2]):
+        # Monitor the vehicle altitude until it is within 95% of the specified takeoff altitude
+        print(self.global_position[2], take_off_pos[2])
+        while self.global_position[2] < 0.9 * take_off_pos[2]:
+            print(self.global_position[2], take_off_pos[2])
             time.sleep(0.1)
-
+        print("Exiting takeoff")
         return True
 
-    #TODO: the students will write this function. The target can either be a GPS target or a local target
+    # TODO: the students will write this function. The target can either be a GPS target or a local target
     def goto(self, target):
+        print("Starting GoTo")
+        print(target)
+        self.connection.send_mav_command(mavutil.mavlink.MAV_CMD_NAV_LOITER_UNLIM, 0, 0, 0, 0, int(target[1]*10**7), int(target[0]*10**7), target[2])
+        print("Commanded target")
+        local_position = global_to_local(self.global_position, self.global_home)
+        target_position = global_to_local(target,self.global_home)
+        distance_to_target = distance_between(target_position,local_position)
+		## Terminate when within 1.0m of the target
+        while (distance_to_target > 1.0):
+            time.sleep(0.1)            
+            local_position = global_to_local(self.global_position,self.global_home)
+            distance_to_target=distance_between(target_position,local_position)
+            print(distance_to_target)
 
-        self.connection.send_mav_command(mavlink.MAV_CMD_NAV_LOITER_UNLIM, 0, 0, 0,
-                                    0, target[0], target[1], target[2])
-        local_position = global_to_local(self.global_position,
-                                         self.global_home)
-
-        #Terminate when within 0.5m of the target
-        while (distance_between(target, local_position) > 0.5):
-            time.sleep(0.1)
 
         return True
 
     #TODO: the students will write this function
     def land(self):
         #Set the position below ground level
-        land_pos = self.gps_position
-        land_pos[2] = self.gps_home[2] - 1.0
+        land_pos = np.copy(self.global_position)
+        land_pos[2] = self.global_home[2] - 1.0
 
-        self.connection.send_mav_command(mavlink.MAV_CMD_NAV_LAND, 0, 0, 0, 0,
-                                     land_pos[0], land_pos[1], land_pos[2])
+        self.connection.send_mav_command(mavutil.mavlink.MAV_CMD_NAV_LAND, 0, 0, 0, 0,
+                                     int(land_pos[0]), int(land_pos[1]), 5.0)
+
 
         #Monitor both the position and the velocity
-        while self.gps_location[2] - land_pos[2] < 0.1:
-            if self.gps_location[2] - self.gps_home[2] < 0.1:
-                if self.global_velocity[2] < 0.1:
-                    return True
+        while self.global_position[2] - land_pos[2] < 0.1:
+            if self.gps_position[2] - self.global_home[2] < 0.1:
+                #if self.global_velocity[2] < 0.1:
+                return True
             time.sleep(0.1)
         return False
 
     #TODO: the students will fill out this function
     def disarm_vehicle(self):
-        self.connection.send_mav_command(mavlink.MAV_CMD_COMPONENT_ARM_DISARM, 0,
+        self.connection.send_mav_command(mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM, 0,
                                      0, 0, 0, 0, 0, 0)
 
         while self.motors_armed:
@@ -192,19 +204,21 @@ class Drone:
         #This will be implemented for the students and sort the mavlink message to different callbacks for different types
         #It may actually just populate the vehicle class data directly
         if name is 'STATUSTEXT':
-            print(msg.text)
+            a = 1
+			#print(msg.text)
         elif name is 'HEARTBEAT':
-			print('Heartbeat Message')
-			self.motors_armed = (msg.base_mode & mavlink.MAV_MODE_FLAG_SAFETY_ARMED) != 0
+            # print('Heartbeat Message')
+            self.motors_armed = (msg.base_mode & mavutil.mavlink.MAV_MODE_FLAG_SAFETY_ARMED) != 0
+            # print(self.motors_armed)
             # TODO: correctly parse the state information
         elif name is 'GLOBAL_POSITION_INT':
-            self.global_position[0] = float(msg.lat) / (10 ^ 7)
-            self.global_position[1] = float(msg.lon) / (10 ^ 7)
+            self.global_position[0] = float(msg.lon) / (10 ** 7)
+            self.global_position[1] = float(msg.lat) / (10 ** 7)
             self.global_position[2] = float(msg.relative_alt) / 1000
             self.global_velocity[0] = float(msg.vx) / 100
             self.global_velocity[1] = float(msg.vy) / 100
             self.global_velocity[2] = -float(msg.vz) / 100
-            self.heading = float(msg.heading) / 100
+            self.heading = float(msg.hdg) / 100
         # TODO: add other messages of interest....
         else:
             print(name)
@@ -218,21 +232,22 @@ def takeoff_and_fly_box(drone):
 
     print('Launching Vehicle')
     drone.takeoff()
-    print(
-        'Successfully launched to %f m height'.format(drone.local_position[2]))
+    #print('Successfully launched to %f m height'.format(drone.local_position[0,2]))
 
     #Box waypoints specified in global frame
     box_waypoints = calculate_box(drone.global_home)
+    print("Done calculating box")
 
     for i in range(4):
         next_waypoint = box_waypoints[i, :]
-        print('Going to next waypoint: (%f,%f,%f)'.format(
-            next_waypoint[0], next_waypoints[1], next_waypoint[2]))
+        #print('Going to next waypoint: (%f,%f,%f)'.format(
+        #    next_waypoint[0,0], next_waypoint[0,1], next_waypoint[0,2]))
         drone.goto(next_waypoint)
-        print('Arrived at waypoint, vehicle position = (%f,%f,%f)'.format(
-            drone.global_position[0], drone.global_position[1],
-            drone.global_position[2]))
+        #print('Arrived at waypoint, vehicle position = (%f,%f,%f)'.format(
+        #    drone.global_position[0], drone.global_position[1],
+        #    drone.global_position[2]))
 
+    time.sleep(2)
     print('Landing')
     drone.land()
 
@@ -241,12 +256,10 @@ def takeoff_and_fly_box(drone):
 
 
 def calculate_box(global_home):
-    global_waypoints = np.zeros(4, 3)
-    local_waypoints = [[10.0, 0.0, -3.0], [10.0, 10.0, -3.0],
-                       [0.0, 10.0, -3.0], [0.0, 0.0, -3.0]]
-    for i in range(4):
-        global_waypoints[i, :] = local_to_global(local_waypoints[i, :],
-                                                 global_home)
+    global_waypoints = np.zeros((4, 3))
+    local_waypoints = np.array([[10.0, 0.0, -3.0],[10.0, 10.0, -3.0],[0.0, 10.0, -3.0],[0.0, 0.0, -3.0]])
+    for i in range(0,4):
+        global_waypoints[i, :] = local_to_global(local_waypoints[i, :], global_home)
 
     return global_waypoints
 
@@ -258,8 +271,9 @@ def calculate_box(global_home):
 def global_to_local(global_position, global_home):
     (east_home, north_home, _, _) = utm.from_latlon(global_home[1],
                                                     global_home[0])
-    (east, north, _, _) = utm.from_latlon(global_position[0],
-                                          global_position[1])
+    (east, north, _, _) = utm.from_latlon(global_position[1],
+                                          global_position[0])
+                                          
     local_position = [
         north - north_home, east - east_home,
         -global_position[2] - global_home[2]
@@ -274,14 +288,16 @@ def local_to_global(local_position, global_home):
     (lat, lon) = utm.to_latlon(east_home + local_position[1],
                                north_home + local_position[0], zone_number,
                                zone_letter)
-    lla = [lon, lat, -local_position[2] + global_home[2]]
+                               
+    lla = [lon, lat, -local_position[2] - global_home[2]]
+    return lla
 
 
 #Solve for the distance between two local positions
 def distance_between(position1, position2):
     sum_square = 0.0
     for i in range(0, 2):
-        sum_square = sum_square + np.pow(position1[i] - position2[i])
+        sum_square = sum_square + np.power(position1[i] - position2[i],2)
     return np.sqrt(sum_square)
 
 
@@ -289,10 +305,19 @@ def distance_between(position1, position2):
 if __name__ == "__main__":
     drone = Drone()
     drone.connect("tcp:127.0.0.1:5760")
+    
+    time.sleep(2)
+    takeoff_and_fly_box(drone)
+        
+    #takeoff_and_fly_box(drone)
+    #print("Arming vehicle")
+    #drone.arm_vehicle()
+    #time.sleep(2)
 
-    time.sleep(20)
-    drone.arm_vehicle()
-    drone.takeoff()
+    #print("Taking off")
+    #drone.takeoff()
+    #print("Done with Takeoff")
+    #time.sleep(2)
 
     # terminate the connection
     drone.disconnect()
