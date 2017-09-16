@@ -117,15 +117,15 @@ class Drone:
         self.connection.send_mav_command(mavutil.mavlink.MAV_CMD_NAV_GUIDED_ENABLE, 1, 0,
                                      0, 0, 0, 0, 0)
 		
-		#Ignore for right now
-        #while (~self.mode != GUIDED):
-        #    time.sleep(0.5)
+		# Ignore for right now
+        # while self.mode != GUIDED:
+        #    time.sleep(0.1)
 
         self.connection.send_mav_command(mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM, 1,
                                      0, 0, 0, 0, 0, 0)
 
         while self.motors_armed != True:
-            time.sleep(1)
+            time.sleep(0.1)
 
         # Record home (initial) position
         self.global_home = np.copy(self.global_position)
@@ -205,7 +205,6 @@ class Drone:
         elif name is 'HEARTBEAT':
             # print('Heartbeat Message')
             self.motors_armed = (msg.base_mode & mavutil.mavlink.MAV_MODE_FLAG_SAFETY_ARMED) != 0
-            # print(self.motors_armed)
             # TODO: correctly parse the state information
         elif name is 'GLOBAL_POSITION_INT':
             self.global_position[0] = float(msg.lon) / (10 ** 7)
@@ -234,7 +233,7 @@ def takeoff_and_fly_box(drone):
     box_waypoints = calculate_box(drone.global_home)
     print("Done calculating box")
 
-    for i in range(4):
+    for i in range(len(box_waypoints)):
         next_waypoint = box_waypoints[i, :]
         #print('Going to next waypoint: (%f,%f,%f)'.format(
         #    next_waypoint[0,0], next_waypoint[0,1], next_waypoint[0,2]))
@@ -254,7 +253,7 @@ def takeoff_and_fly_box(drone):
 def calculate_box(global_home):
     global_waypoints = np.zeros((4, 3))
     local_waypoints = np.array([[10.0, 0.0, -3.0],[10.0, 10.0, -3.0],[0.0, 10.0, -3.0],[0.0, 0.0, -3.0]])
-    for i in range(0,4):
+    for i in range(len(local_waypoints)):
         global_waypoints[i, :] = local_to_global(local_waypoints[i, :], global_home)
 
     return global_waypoints
@@ -292,7 +291,7 @@ def local_to_global(local_position, global_home):
 #Solve for the distance between two local positions
 def distance_between(position1, position2):
     sum_square = 0.0
-    for i in range(0, 2):
+    for i in range(len(position1)):
         sum_square = sum_square + np.power(position1[i] - position2[i],2)
     return np.sqrt(sum_square)
 
