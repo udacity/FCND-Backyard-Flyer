@@ -184,8 +184,9 @@ class Drone:
         land_pos = np.copy(self.global_position)
         land_pos[2] = self.global_home[2] - 1.0
 
+		#Go down to the altitude specified in land_pos[2]
         self.connection.send_mav_command(mavutil.mavlink.MAV_CMD_NAV_LAND, 0, 0, 0, 0,
-                                     land_pos[0], land_pos[1], 5.0)
+                                     0, 0, land_pos[2])
 
         print(self.global_position[2]-land_pos[2])
         #Monitor both the position and the velocity, terminate when the vehicle is near the ground with a near-zero vertical velocity
