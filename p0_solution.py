@@ -305,12 +305,6 @@ def local_to_global(local_position, global_home):
     return lla
 
 
-M2Latitude = 1.0 / 111111.0;
-
-latitude0 = 37.412939;
-longitude0 = 121.995635;
-M2Longitude = 1.0 / (0.8 * 111111.0);
-
 #Solve for the distance between two local positions
 def distance_between(position1, position2):
     sum_square = 0.0
