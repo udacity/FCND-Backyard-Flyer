@@ -195,7 +195,8 @@ class Drone:
 					return True
             print(self.global_position[2]-land_pos[2])
             time.sleep(0.1)
-        return False
+        print("Finished Landing")
+        return True
 
     #TODO: Fill in this method
     #This method should disarm the vehicle and return true when they are successfully disarmed
@@ -247,14 +248,16 @@ def takeoff_and_fly_box(drone):
     time.sleep(1)    
 
     #Box waypoints specified in global frame
+    global box_waypoints
     box_waypoints = calculate_box(drone.global_home)
     print("Done calculating box")
 
-    for i in xrange(4):
+    for i in range(len(box_waypoints)):
         next_waypoint = box_waypoints[i, :]
         drone.goto(next_waypoint)
         time.sleep(1)
 
+    time.sleep(2)
     print('Landing')
     drone.land()
     time.sleep(1)
@@ -266,6 +269,7 @@ def takeoff_and_fly_box(drone):
 
 #This function will not be provided, it is part of my solution
 def calculate_box(global_home):
+    
     global_waypoints = np.zeros((4, 3))
     local_waypoints = np.array([[10.0, 0.0, -3.0],[10.0, 10.0, -3.0],[0.0, 10.0, -3.0],[0.0, 0.0, -3.0]])
     for i in xrange(0,4):
@@ -277,17 +281,11 @@ def calculate_box(global_home):
 #Helper functions provided to the students
 #Convert a global position (lon,lat,up) to a local position (north,east,down) relative to the home position
 def global_to_local(global_position, global_home):
-    #(east_home, north_home, _, _) = utm.from_latlon(global_home[1],
-    #                                                global_home[0])
-    #(east, north, _, _) = utm.from_latlon(global_position[1],
-    #                                      global_position[0])
-    
-    east_home = (1/M2Longitude)*global_home[0]
-    north_home = (1/M2Latitude)*global_home[1]
-
-    east = (1/M2Longitude)*global_position[0]
-    north = (1/M2Latitude)*global_position[1]
-                                    
+    (east_home, north_home, _, _) = utm.from_latlon(global_home[1],
+                                                    global_home[0])
+    (east, north, _, _) = utm.from_latlon(global_position[1],
+                                          global_position[0])
+                                          
     local_position = [
         north - north_home, east - east_home,
         -global_position[2] - global_home[2]
@@ -297,17 +295,12 @@ def global_to_local(global_position, global_home):
 
 #Convert a local position (north,east,down) relative to the home position to a global position (lon,lat,up)
 def local_to_global(local_position, global_home):
-    #(east_home, north_home, zone_number, zone_letter) = utm.from_latlon(
-    #    global_home[1], global_home[0])
-    #(lat, lon) = utm.to_latlon(east_home + local_position[1],
-    #                           north_home + local_position[0], zone_number,
-    #                           zone_letter)
-    east_home = (1/M2Longitude)*global_home[0]
-    north_home = (1/M2Latitude)*global_home[1]                           
-    
-    lat = M2Latitude*(north_home+local_position[0])
-    lon = M2Longitude*(east_home + local_position[1])    
-    
+    (east_home, north_home, zone_number, zone_letter) = utm.from_latlon(
+        global_home[1], global_home[0])
+    (lat, lon) = utm.to_latlon(east_home + local_position[1],
+                               north_home + local_position[0], zone_number,
+                               zone_letter)
+                               
     lla = [lon, lat, -local_position[2] - global_home[2]]
     return lla
 
@@ -321,11 +314,11 @@ M2Longitude = 1.0 / (0.8 * 111111.0);
 #Solve for the distance between two local positions
 def distance_between(position1, position2):
     sum_square = 0.0
-    for i in range(0, 2):
+    for i in range(len(position1)):
         sum_square = sum_square + np.power(position1[i] - position2[i],2)
     return np.sqrt(sum_square)
 
-box_waypoints = []
+
 
 # This is the 
 if __name__ == "__main__":
@@ -334,6 +327,6 @@ if __name__ == "__main__":
     
     time.sleep(2)
     takeoff_and_fly_box(drone)
-
+        
     # terminate the connection
     drone.disconnect()
