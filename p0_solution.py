@@ -145,7 +145,7 @@ class Drone:
         print(self.global_home, take_off_pos)
         self.connection.send_mav_command(mavutil.mavlink.MAV_CMD_NAV_TAKEOFF, 0, 0, 0, 0,
                                      0, 0,
-                                     altitude)
+                                     take_off_pos[2])
 
         # Monitor the vehicle altitude until it is within 95% of the specified takeoff altitude
         print(self.global_position[2], take_off_pos[2])
@@ -206,6 +206,10 @@ class Drone:
 
         while self.motors_armed:
             time.sleep(1)
+        
+        #Give back control of the vehicle
+        self.connection.send_mav_command(mavutil.mavlink.MAV_CMD_NAV_GUIDED_ENABLE, 0, 0,
+                                     0, 0, 0, 0, 0)
 
         return True
 
@@ -288,7 +292,7 @@ def global_to_local(global_position, global_home):
                                           
     local_position = [
         north - north_home, east - east_home,
-        -global_position[2] - global_home[2]
+        -global_position[2]
     ]
     return local_position
 
@@ -301,7 +305,7 @@ def local_to_global(local_position, global_home):
                                north_home + local_position[0], zone_number,
                                zone_letter)
                                
-    lla = [lon, lat, -local_position[2] - global_home[2]]
+    lla = [lon, lat, -local_position[2]]
     return lla
 
 
