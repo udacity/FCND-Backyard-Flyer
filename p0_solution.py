@@ -180,7 +180,7 @@ class Drone:
 
 
         #Monitor both the position and the velocity
-        while self.global_position[2] > 1.1 * land_pos[2]:
+        while self.global_position[2] > 1.5 * land_pos[2]:
             time.sleep(0.1)
         print("Finished Landing")
         return True
