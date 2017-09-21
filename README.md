@@ -3,6 +3,6 @@
 ## Dependencies
 
 * flask
-* python-socketio
+* utm
 * eventlet
 * pymavlink
