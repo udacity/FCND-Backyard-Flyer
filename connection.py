@@ -2,7 +2,6 @@
 
 from pymavlink import mavutil
 import threading
-
 import os
 # force use of mavlink v2.0
 os.environ['MAVLINK20'] = '1'
@@ -28,6 +27,7 @@ class Connection:
             # get the next message
             # NOTE: this is a blocking call, which is why we have a thread for it
             msg = self.master.recv_match(blocking=True)
+            
 
             # if it's a good message, send it back to the callback
             if msg.get_type() != 'BAD_DATA':
