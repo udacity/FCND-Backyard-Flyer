@@ -19,8 +19,9 @@ class Drone:
         self.mode = None
         self.connected = False
         
-        
-        self.log = logger.Logger(os.path.join("Logs","navLog.txt"))
+        #TODO: Change the log name
+        logname = "navLog.txt"
+        self.log = logger.Logger(os.path.join("Logs",logname))
 		
 		
     #Provided
@@ -55,7 +56,7 @@ class Drone:
         #TODO: fill out this method
         return True
         
-    #Disarms the vehicle, and returns true when the motors report armed
+    #Disarms the vehicle, returns control to manual, and returns true when the motors report armed
     def disarm_vehicle(self):
         #TODO: fill out this method   
         return True
