@@ -18,10 +18,6 @@ You'll need Python 3. Anaconda now comes standard with Python 3 and several pre-
 
 * utm (For conversion between Local and Global coordinate frames)
 
-* lxml
-
-* future
-
 The instructions below walk through the instructions for getting a Python environment set up with the appropriate dependencies.
 
 
@@ -85,7 +81,7 @@ conda env remove -n flyingcarnd-p0
 
 ## Drone Simulator
 
-The next step is to download the simulator build that's appropriate for your operating system. Here are the links for [Linux](https://github.com/udacity/FlyingCarND-Sim "Linux"), [Mac](https://github.com/udacity/FlyingCarND-Sim "Mac"), or [Windows](https://github.com/udacity/FlyingCarND-Sim "Windows").
+The next step is to download the simulator build that's appropriate for your operating system. You can find the build on the [releases page](https://github.com/udacity/FlyingCarND-Sim/releases).
 
 You can manually fly the drone using the instructions provided in the simulator's readme.
 
@@ -201,6 +197,29 @@ Commands are sent using the 'send_mav_command' method of the Connection class. T
 Not all autopilots implement all commands in the same way. The simulator accepts a limited set of MAV_CMDs. For a list of MAV_CMDs implemented in the simulator, see below.
 
 Telemetry data received into the Drone class in the 'decode_mav_msg' callback. This callbacks assigns the data to the appropriate variables of the Drone class depending on the message type. For this project, only limited telemetry is available from the Drone
+
+#### Message Format
+
+We use an edited Mavlink V2 message format. More details on the V1 and V2 formats can be found on [this page](https://mavlink.io/en/protocol.html).
+
+The exact representation we use is:
+
+```sh
+uint8_t magic;              ///< protocol magic marker
+uint8_t len;                ///< Length of payload
+uint8_t incompat_flags;     ///< flags that must be understood
+uint8_t compat_flags;       ///< flags that can be ignored if not understood
+uint8_t seq;                ///< Sequence of packet
+uint8_t sysid;              ///< ID of message sender system/aircraft
+uint8_t compid;             ///< ID of the message sender component
+uint8_t msgid 0:7;          ///< first 8 bits of the ID of the message
+uint8_t msgid 8:15;         ///< middle 8 bits of the ID of the message
+uint8_t msgid 16:23;        ///< last 8 bits of the ID of the message
+uint8_t payload[max 253];   ///< A maximum of 253 payload bytes
+uint16_t checksum;          ///< X.25 CRC
+```
+
+10 bytes for the header, 0-253 bytes for the payload (exact size depends on the message), and 2 bytes for the checksum.
 
 #### MAV_CMDs
 
