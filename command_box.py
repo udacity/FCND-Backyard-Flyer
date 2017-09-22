@@ -9,7 +9,7 @@ from drone import Drone
 
 
 
-#Take control of the drone, arm motors, takeoff to a height of 3m, fly a 10m box, land, and disarm
+#Take control of the drone, arm motors, takeoff to a height of 3m, fly a 10m box, land, disarm, and return to manual control
 def takeoff_and_fly_box(drone):
 #TODO: filled out this function
     return True

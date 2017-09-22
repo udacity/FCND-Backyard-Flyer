@@ -28,12 +28,5 @@ def local_to_global(local_position, global_home):
     return lla
 
 
-#Solve for the distance between two local positions
-def distance_between(position1, position2):
-    sum_square = 0.0
-    for i in range(len(position1)):
-        sum_square = sum_square + np.power(position1[i] - position2[i],2)
-    return np.sqrt(sum_square)
-
 
 

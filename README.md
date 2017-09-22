@@ -103,6 +103,9 @@ The GPS data is set to automatically log whenever the Drone class receives a GPS
 * Column 5: East Velocity (m/s)
 * Column 6: Down Velocity, positive down (m/s)
 * Column 7: Heading
+* Column 8: self.target_position[0] (user assigned)
+* Column 9: self.target_position[1] (user assigned)
+* Column 10: self.target_position[2] (user assigned)
 
 
 ### Manual Flight Logging
@@ -128,7 +131,7 @@ Filename should be replaced with the appropriate path to the log. The data from 
 
 ~~~
 from matplotlib import pyplot
-pyplot.nav_log[:,0]
+pyplot.plot(nav_log[:,0])
 ~~~
 
 
@@ -152,7 +155,7 @@ The Drone class is found in drone.py. Several of the methods are filled in, but 
         # TODO: fill out this method
         return True
 
-    # Command the vehicle to the target position and return True when it has arrived
+    # Command the vehicle to the target position, assign the target to self.target_position and return True when it has arrived
     def goto(self, target):
         #TODO: fill out this method
         return True
@@ -200,7 +203,8 @@ Commands are sent using the 'send_mav_command' method of the Connection class. T
 
 Not all autopilots implement all commands in the same way. The simulator accepts a limited set of MAV_CMDs. For a list of MAV_CMDs implemented in the simulator, see below.
 
-Telemetry data received into the Drone class in the 'decode_mav_msg' callback. This callbacks assigns the data to the appropriate variables of the Drone class depending on the message type. For this project, only limited telemetry is available from the Drone
+Telemetry data received into the Drone class in the 'decode_mav_msg' callback. This callbacks assigns the data to the appropriate variables of the Drone class depending on the message type. For this project, only limited telemetry is available from the Drone.
+
 
 #### MAV_CMDs
 
@@ -212,6 +216,8 @@ Only the following MAV_CMDs are implemented for communication with the drone wit
 * MAV_CMD_NAV_TAKEOFF (Ascend straight up to the altitude specified by the z parameter)
 * MAV_CMD_NAV_LAND (Descend straight down to the altitude specified by the z parameter)
 
+NOTE: Floating point (32 bit) numbers do not have the precision required for a GPS latitude/longitude. Latitude/Longitude are passed via Mavlink using Integer data types. Degrees latitude/longitude are scalled by 10^7 prior to conversion to integer. All other parameters passed using MAV_CMD are passed as floats.
+
 Other MAV_CMDs passed to the simulator will be ignored
 
 #### MAV_MSGs
@@ -219,19 +225,59 @@ Other MAV_CMDs passed to the simulator will be ignored
 There are two types of Mavlink telemetry messages currently being sent from the simulator:
 
 * HEARTBEAT (Contains status information about the drone)
-* GLOBAL_POSITION_INT (longitude, latitude, altitude, north velocity, east velocity, down velocity)
+* GLOBAL_POSITION_INT (longitude (deg*10^7), latitude (deg*10^7), altitude (mm), rel_alt (mm), north velocity (m/s*100), east velocity (m/s*100, down velocity (m/s*100), heading (deg*100))
 
+NOTE: All fields in the GLOBAL_POSITION_INT are passed as integer types. The longitude, latitude, and altitudes are passed as integers (32 bit), the velocities are passed as shorts (16 bit) and the heading is passed as an unsigned short (16 bit). All values are scaled as shown.
 
 #### Reference Frames
 
-TODO: Information about local vs global reference frames
+Two different reference frames are used. Global positions are defined [longitude, latitude, altitude (pos up)]. Local reference frames are defined [North, East, Down (pos down)] and is relative to a nearby global home provided. Both reference frames are defined in a proper right-handed reference frame . The global reference frame is what is provided by the Drone's GPS, but degrees are difficult to work with on a small scale. Conversion to a local frame allows for easy calculation of m level distances. Two convenience function are provided to convert between the two frames. These functions are wrappers on utm library functions.
+
+~~~
+#Convert a local position (north,east,down) relative to the home position to a global position (lon,lat,up)
+def local_to_global(local_position, global_home):
+
+#Convert a global position (lon,lat,up) to a local position (north,east,down) relative to the home position
+def global_to_local(global_position, global_home):
+~~~
 
 ### Command Script
 
-TODO:
+You will use the Drone class to complete the function takeoff_and_fly_box function found in command_box.py
+
+~~~
+#Take control of the drone, arm motors, takeoff to a height of 3m, fly a 10m box, land, disarm, and return to manual control
+def takeoff_and_fly_box(drone):
+#TODO: filled out this function
+    return True
+~~~
+
+After filling out the function, start the simulator and run the function:
+
+~~~
+conda command_box.py
+~~~
+
+The logs are automatically saved to the location specified in the Drone class.
+
+## Submission Requirements
+
+* Filled in drone.py
+
+* Completed command_box.py
+
+* An x-y (East-North or Long-Lat) plot of the vehicle trajectory while manually flying the box
+
+* An x-y (East-North or Long-Lat) plot of the vehicle trajectory from autonomously flying the box
+
+* A short write-up (.md or .pdf)
 
 ## Project Walkthrough
 
+TODO: Film a YouTube step through of the project
+
 ## Modifications for Ardupilot
+
+TODO: This would be nice to have, but isn't a top priority
 
 

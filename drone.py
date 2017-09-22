@@ -15,6 +15,7 @@ class Drone:
         self.global_home = np.array([None, None, None])
         self.motors_armed = False
         self.global_velocity = np.array([None, None, None])
+        self.target_position = np.array([0.0, 0.0, 0.0])
         self.heading = None
         self.mode = None
         self.connected = False
@@ -46,7 +47,7 @@ class Drone:
         # TODO: fill out this method
         return True
 
-    # Command the vehicle to the target position and return True when it has arrived
+    # Command the vehicle to the target position, assign the target to self.target_position and return True when it has arrived
     def goto(self, target):
         #TODO: fill out this method
         return True
@@ -91,6 +92,9 @@ class Drone:
             data.append(self.global_velocity[2])
             self.heading = float(msg.hdg) / 100
             data.append(self.heading)
+            
+            for i in range(3):
+                data.append(self.target_position[i])
             
             self.log.log_data(data)
             
