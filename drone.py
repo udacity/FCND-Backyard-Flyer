@@ -44,8 +44,8 @@ class Drone:
         self.all_waypoints = []
         self.in_mission = False
         self.state = States.MANUAL
-        self.check_transition = {}
-        self.transition = []
+        self.check_state = {}
+        self.transitioning = False
         
         #TODO: Change the log name
         logname = "navLog.txt"
@@ -197,21 +197,33 @@ class Drone:
         else:
             print(name)
             
-    def set_transitions(self):
-        self.check_transition[States.MANUAL] = self.manual_callback
-        self.check_transition[States.ARMING] = self.arming_callback
-        self.check_transition[States.TAKEOFF] = self.takeoff_callback
-        self.check_transition[States.WAYPOINT] = self.waypoint_callback
-        self.check_transition[States.LANDING] = self.landing_callback
-        self.check_transition[States.DISARMING] = self.disarming_callback
+    def set_callbacks(self):
+        self.check_state[States.MANUAL] = self.manual_callback
+        self.check_state[States.ARMING] = self.arming_callback
+        self.check_state[States.TAKEOFF] = self.takeoff_callback
+        self.check_state[States.WAYPOINT] = self.waypoint_callback
+        self.check_state[States.LANDING] = self.landing_callback
+        self.check_state[States.DISARMING] = self.disarming_callback
+
+    def check_state_server(self):        
+        while self.in_mission:
+            if(~self.transitioning):
+                self.check_state[self.state]()               
     
     def run_mission(self):
         self.in_mission = True
-        self.set_transitions()
+        self.set_callbacks()
+    
+        check_state_handle = threading.Thread(
+            target=self.check_state_server)
         
-        self.arm()        
+        self.arm() 
+        check_state_handle.start()
+        
         while self.in_mission:
-            self.check_transition[self.state]()
+            self.state #Do nothing
+            
+        check_state_handle.join()
 
 
 
