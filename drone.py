@@ -1,13 +1,11 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-import time
 import logger
 import connection
 import os
 from pymavlink import mavutil
 from enum import Enum
-import threading
 import frame_utils
 
 class States(Enum):
@@ -55,13 +53,12 @@ class Drone:
     #Provided
     def connect(self, device):
         self.connection = connection.Connection(device, self.decode_mav_msg)
-        while self.connected != True:
-            time.sleep(1)
+        self.connection.wait_for_message()
     
     #Provided
     def disconnect(self):
         self.connection.disconnect()
-        self.log.close()
+        
 
 
     def manual_callback(self):
@@ -76,8 +73,7 @@ class Drone:
     #Set mode to guided, arm the motors
     def arm(self):
         self.state = States.ARMING
-        self.manual(1)
-		
+        self.manual(1)		
         self.connection.send_mav_command(mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM, 1,
                                      0, 0, 0, 0, 0, 0)
         
@@ -85,7 +81,7 @@ class Drone:
     def arming_callback(self):
         #TODO: fill out this method
         
-        if(self.motors_armed):
+        if(self.motors_armed & self.guided):
             self.global_home = np.copy(self.global_position)
             print("Home Set: " + np.str(self.global_home))
             self.takeoff()
@@ -156,19 +152,20 @@ class Drone:
         if(~self.motors_armed):
             self.manual(0)
             self.in_mission = False
+            self.disconnect()
 
     #This method is provided
     def decode_mav_msg(self, name, msg):
+        print('Data Received')
         # NOTE: this effectively becomes a callback of the main connection thread
         #This will be implemented for the students and sort the mavlink message to different callbacks for different types
         #It may actually just populate the vehicle class data directly
-        
+        self.connected = True        
         if name is 'STATUSTEXT':
             name #Do nothing
 
         elif name is 'HEARTBEAT':
             #print('Heartbeat Message')
-            self.connected = True
             self.motors_armed = (msg.base_mode & mavutil.mavlink.MAV_MODE_FLAG_SAFETY_ARMED) != 0
             self.guided = (msg.base_mode & mavutil.mavlink.MAV_MODE_FLAG_GUIDED_ENABLED) != 0
             # Correctly parse the state information
@@ -205,26 +202,40 @@ class Drone:
         self.check_state[States.LANDING] = self.landing_callback
         self.check_state[States.DISARMING] = self.disarming_callback
 
-    def check_state_server(self):        
-        while self.in_mission:
-            if(~self.transitioning):
-                self.check_state[self.state]()               
-    
-    def run_mission(self):
+    def init_mission(self):
+        self.connect("tcp:127.0.0.1:5760")
         self.in_mission = True
         self.set_callbacks()
-    
-        check_state_handle = threading.Thread(
-            target=self.check_state_server)
         
-        self.arm() 
-        check_state_handle.start()
+    def run_mission(self):
+              
+        self.init_mission() # run the mission intialization
+        self.arm() # Set the first state to arm
+
+        while self.in_mission & self.connected:
+            timeout = self.connection.wait_for_message() #Block thread until a new Mavlink message arrives
+            if timeout:
+                print('Connection Timeout')
+                self.connected = False
+            self.check_state[self.state]() #Check for a state transition
         
-        while self.in_mission:
-            self.state #Do nothing
-            
-        check_state_handle.join()
+        self.log.close()
+        
+        
+    def init_manual(self):
+        self.connect("tcp:127.0.0.1:5760")
+        
+    def fly_manual(self):
+        self.init_manual()
+        while self.connected:
+            timeout = self.connection.wait_for_message()
+            if timeout:
+                print('Connection Timeout')
+                self.connected = False
+        
+        self.log.close()    
 
-
-
-
+if __name__ == "__main__":
+    drone = Drone()    
+    #drone.run_mission()
+    drone.fly_manual()
