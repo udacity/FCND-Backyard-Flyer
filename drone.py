@@ -7,6 +7,7 @@ import os
 from pymavlink import mavutil
 from enum import Enum
 import frame_utils
+import sys
 
 class States(Enum):
     MANUAL=0
@@ -54,105 +55,79 @@ class Drone:
     def connect(self, device):
         self.connection = connection.Connection(device, self.decode_mav_msg)
         self.connection.wait_for_message()
+        
     
     #Provided
     def disconnect(self):
         self.connection.disconnect()
         
-
-
-    def manual_callback(self):
-        return True
-            
-    def manual(self,set_guided):
-        self.connection.send_mav_command(mavutil.mavlink.MAV_CMD_NAV_GUIDED_ENABLE, set_guided, 0,
+        
+    #Provided
+    def manual(self):
+        self.in_mission
+        self.connection.send_mav_command(mavutil.mavlink.MAV_CMD_NAV_GUIDED_ENABLE, 0, 0,
                              0, 0, 0, 0, 0)
-        if(set_guided==0):
-            self.state = States.MANUAL
+        self.state = States.MANUAL
+        return
     
-    #Set mode to guided, arm the motors
+    #Initiate the ARMING state, put the vehicle in guided mode and arm
     def arm(self):
-        self.state = States.ARMING
-        self.manual(1)		
-        self.connection.send_mav_command(mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM, 1,
-                                     0, 0, 0, 0, 0, 0)
-        
-    #Save position and transition to takeoff when armed
-    def arming_callback(self):
         #TODO: fill out this method
-        
-        if(self.motors_armed & self.guided):
-            self.global_home = np.copy(self.global_position)
-            print("Home Set: " + np.str(self.global_home))
-            self.takeoff()
-        
+        return
+    
+    #Initiate the TAKEOFF state, command the vehicle the target altitude (m)
     def takeoff(self,altitude=3.0):
-        self.state = States.TAKEOFF
-        self.target_position = [x for x in self.global_home]
-        self.target_position[2] = self.target_position[2] + altitude
-
-        self.connection.send_mav_command(mavutil.mavlink.MAV_CMD_NAV_TAKEOFF, 0, 0, 0, 0,
-                                     0, 0,altitude)
-
-    #Command the vehicle to a specific height and return True when it gets to the specified altitude
-    def takeoff_callback(self):
-        # TODO: fill out this method
-        
-        if(self.global_position[2] > 0.95*self.target_position[2]):
-            self.all_waypoints = calculate_box(self.global_home)
-            self.target_position = self.all_waypoints.pop(0)
-            self.goto(self.target_position)
-
-
-
-    #Go to the commanded target, specified as Lat, Long, Alt
-    def goto(self,target):
-        self.state = States.WAYPOINT
-        self.connection.send_mav_command(mavutil.mavlink.MAV_CMD_NAV_LOITER_UNLIM, 0, 0, 0, 0, target[1]*10**7, target[0]*10**7, target[2])
-        
-    # Check the position to the target position
-    def waypoint_callback(self):
         #TODO: fill out this method
-        
-        local_position = frame_utils.global_to_local(self.global_position,self.global_home)
-        target_local = frame_utils.global_to_local(self.target_position,self.global_home)
-        if(np.linalg.norm(target_local-local_position)<1.0):
-            if(len(self.all_waypoints)>0):
-                self.target_position = self.all_waypoints.pop(0)
-                self.goto(self.target_position)
-            else:
-                self.land()
-                
+        return
+    
+    #Initiate the WAYPOINT state, command the vehicle to the position specified as Lat, Long, Alt
+    def waypoint(self,target):
+        #TODO: fill out this method
+        return
+    
+    #Initiate the LANDING state, command the vehicle to specified altitude (m)
     def land(self, altitude=0.0):
-        self.state = States.LANDING
-        self.target_position = np.copy(self.global_home)
-        self.target_position[2] = self.target_position[2]-1.0
-        self.connection.send_mav_command(mavutil.mavlink.MAV_CMD_NAV_LAND, 0, 0, 0, 0,
-                                     0, 0, self.target_position[2])
-        
-
-    # Lands the vehicle in the current location and returns true when the vehicle is on the ground
-    def landing_callback(self):
         #TODO: fill out this method
-        
-        if(self.global_position[2]-self.global_home[2]<0.05):
-            if(np.abs(self.global_velocity[2])<0.1):
-                self.disarm()
-
-        
+        return
+    
+    #Initiate the DIARMING state, command the vehicle to disarm
     def disarm(self):
-        self.state = States.DISARMING
-        self.connection.send_mav_command(mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM, 0,
-                                     0, 0, 0, 0, 0, 0)
+        #TODO; fill out this method
+        return
+     
+    #Provided
+    def manual_callback(self):
         
-    #Disarms the vehicle, returns control to manual, and returns true when the motors report armed
+        return True
+    
+    
+    #Save the current position as the home position and transition to the next state when the vehicle is armed and in guided mode
+    def arming_callback(self):
+        #TODO: fill out this callback
+        return
+        
+    
+    #Transition to the next state when the target altitude is reach
+    def takeoff_callback(self):
+        # TODO: fill out this callback
+        return
+    
+        
+    # Transition to the next state when the target waypoint is reached (within 1m)
+    def waypoint_callback(self):
+        #TODO: fill out this callback
+        return                
+       
+
+    # Transition to the next state when the drone is on the ground
+    def landing_callback(self):
+        #TODO: fill out this callback
+        return
+    
+    # Transition to the next state when the drone is disarmed
     def disarming_callback(self):
-        #TODO: fill out this method   
-        
-        if(~self.motors_armed):
-            self.manual(0)
-            self.in_mission = False
-            self.disconnect()
+        #TODO: fill in this callback
+        return
 
     #This method is provided
     def decode_mav_msg(self, name, msg):
@@ -193,7 +168,8 @@ class Drone:
             
         else:
             print(name)
-            
+    
+    #Provided, sets the list of callbacks      
     def set_callbacks(self):
         self.check_state[States.MANUAL] = self.manual_callback
         self.check_state[States.ARMING] = self.arming_callback
@@ -202,11 +178,13 @@ class Drone:
         self.check_state[States.LANDING] = self.landing_callback
         self.check_state[States.DISARMING] = self.disarming_callback
 
+    #Provided
     def init_mission(self):
         self.connect("tcp:127.0.0.1:5760")
         self.in_mission = True
         self.set_callbacks()
-        
+
+    #Provided, runs the mission
     def run_mission(self):
               
         self.init_mission() # run the mission intialization
@@ -219,12 +197,15 @@ class Drone:
                 self.connected = False
             self.check_state[self.state]() #Check for a state transition
         
+        if self.connected:
+            self.connection.disconnect()
         self.log.close()
         
-        
+    #Provided
     def init_manual(self):
         self.connect("tcp:127.0.0.1:5760")
-        
+    
+    #Provided, runs the logger while flying manually
     def fly_manual(self):
         self.init_manual()
         while self.connected:
@@ -236,6 +217,18 @@ class Drone:
         self.log.close()    
 
 if __name__ == "__main__":
-    drone = Drone()    
-    #drone.run_mission()
-    drone.fly_manual()
+    arguments = sys.argv[1:]
+    count = len(arguments)
+    
+    drone = Drone()
+    if count == 0:
+        print('Manual Flight')
+        drone.fly_manual()
+    elif count == 1:
+        if arguments[0] == '-r':
+            print('Running Mission')
+            drone.run_mission()
+        else:
+            print('Invalid argment')
+    else:
+        print('Invalid number of arguments')
