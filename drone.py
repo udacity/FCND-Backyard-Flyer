@@ -17,14 +17,6 @@ class States(Enum):
     LANDING=4
     DISARMING=5
     
-def calculate_box(global_home):
-    
-    global_waypoints = []#np.zeros((4, 3))
-    local_waypoints = np.array([[10.0, 0.0, -3.0],[10.0, 10.0, -3.0],[0.0, 10.0, -3.0],[0.0, 0.0, -3.0]])
-    for i in range(0,4):
-        global_waypoints.extend([frame_utils.local_to_global(local_waypoints[i, :], global_home)])
-    return global_waypoints
-
 class Drone:
     
     #This method will be provided to the students
@@ -70,48 +62,32 @@ class Drone:
         self.connection.send_mav_command(mavutil.mavlink.MAV_CMD_NAV_GUIDED_ENABLE, 0, 0,
                              0, 0, 0, 0, 0)
         self.state = States.MANUAL
-        print('Commanded Manual')
         return
     
     #Initiate the ARMING state, put the vehicle in guided mode and arm
     def arm(self):
-        self.state = States.ARMING
-        self.connection.send_mav_command(mavutil.mavlink.MAV_CMD_NAV_GUIDED_ENABLE, 1, 0,
-                                     0, 0, 0, 0, 0)
-        self.connection.send_mav_command(mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM, 1,
-                                     0, 0, 0, 0, 0, 0)          
+        # TODO: fill out this method
         return
     
     #Initiate the TAKEOFF state, command the vehicle the target altitude (m)
     def takeoff(self,altitude=3.0):
-        self.state = States.TAKEOFF
-        self.target_position = np.copy(self.global_position)
-        self.target_position[2] = altitude
-        self.connection.send_mav_command(mavutil.mavlink.MAV_CMD_NAV_TAKEOFF, 0, 0, 0, 0,
-                                     0, 0, altitude)
+        # TODO: fill out this method
         return
     
     #Initiate the WAYPOINT state, command the vehicle to the position specified as Lat, Long, Alt
     def waypoint(self,target):
-        self.state = States.WAYPOINT
-        self.connection.send_mav_command(mavutil.mavlink.MAV_CMD_NAV_LOITER_UNLIM, 0, 0, 0, 0, target[1]*10**7, target[0]*10**7, target[2])
+        # TODO: fill out this method
         return
     
     #Initiate the LANDING state, command the vehicle to specified altitude (m)
     def land(self, altitude=0.0):
-        self.state = States.LANDING
-        self.target_position = np.copy(self.global_home)
-        self.target_position[2] = altitude
-        self.connection.send_mav_command(mavutil.mavlink.MAV_CMD_NAV_LAND, 0, 0, 0, 0,
-                                     0, 0, self.target_position[2])
+        # TODO: fill out this method
 
         return
     
     #Initiate the DIARMING state, command the vehicle to disarm
     def disarm(self):
-        self.state = States.DISARMING
-        self.connection.send_mav_command(mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM, 0,
-                                     0, 0, 0, 0, 0, 0)
+        # TODO: fill out this method
         return
      
     #Provided
@@ -122,49 +98,34 @@ class Drone:
     
     #Save the current position as the home position and transition to the next state when the vehicle is armed and in guided mode
     def arming_transition(self):
-        if self.motors_armed & self.guided:
-            self.global_home = np.copy(self.global_position)
-            self.takeoff()
+        # TODO: fill out this method
         return
         
     
     #Transition to the next state when the target altitude is reach
     def takeoff_transition(self):
-        if self.global_position[2] >= 0.95*self.target_position[2]:
-            self.all_waypoints = calculate_box(self.global_home)
-            self.target_position = self.all_waypoints.pop(0)
-            self.waypoint(self.target_position)
+        # TODO; fill out this method
         return
     
         
     # Transition to the next state when the target waypoint is reached (within 1m)
     def waypoint_transition(self):
-        local_target = frame_utils.global_to_local(self.target_position,self.global_home)
-        local_position = frame_utils.global_to_local(self.global_position,self.global_home)
-        if np.linalg.norm(local_target[0:2]-local_position[0:2])<1.0:
-            if len(self.all_waypoints)>0:
-                self.target_position = self.all_waypoints.pop(0)
-                self.waypoint(self.target_position)
-            else:
-                self.land(self.global_home[2]-1.0)
-                
+        # TODO; fill out this method
         return                
        
 
     # Transition to the next state when the drone is on the ground
     def landing_transition(self):
-        if self.global_position[2] - self.global_home[2] < 0.05:
-            if self.global_velocity[2] < 0.05:
-                self.disarm()
+        # TODO; fill out this method
         return
     
     # Transition to the next state when the drone is disarmed
     def disarming_transition(self):
-        if ~self.motors_armed:
-            self.manual()
+        # TODO; fill out this method
         return
 
 
+    # Provided callbacks
     def heartbeat_callback(self,msg):
         self.connected = True
         self.motors_armed = (msg.base_mode & mavutil.mavlink.MAV_MODE_FLAG_SAFETY_ARMED) != 0
@@ -199,7 +160,7 @@ class Drone:
             self.check_state[self.state]()
 
     
-    #Provided, sets the list of callbacks      
+    #Provided, sets the list of transition functions      
     def set_transitions(self):
         self.check_state[States.MANUAL] = self.manual_transition
         self.check_state[States.ARMING] = self.arming_transition
