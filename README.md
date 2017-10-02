@@ -242,7 +242,7 @@ This function checks to see if the drone is armed. When it detects that the dron
 
 #### Mavlink Callbacks
 
-For convenience the Mavlink messages are parsed in two callbacks, 'heartbeat callback' and 'global_position_ callback' into different variables of the drone class. The following class variables hold the latest drone information receive from Mavlink:
+For convenience the Mavlink messages are parsed in two callbacks, 'heartbeat callback' and 'global_position_callback' into different variables of the drone class. The following class variables hold the latest drone information receive from Mavlink:
 
 
 * global_position: numpy array [Longitude (deg), Latitude (deg), Altitude (m)]
