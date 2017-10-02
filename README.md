@@ -6,7 +6,7 @@ The required task is to command the drone to fly a 10m box at a 3m altitude. Thi
 
 Manual control of the drone is done using the instructions found with the simulator.
 
-Autonomously controlling will be done using a event-driven state machine. First, you will need to fill in the appropriate state method which is run on the intiation of each state. Next you'll write the state transition callbacks. In these callbacks, you will check need to check an appropriate transition criterion to transition to the next state.
+Autonomously controlling will be done using a event-driven state machine. First, you will need to fill in the appropriate state commands which are run on the intiation of each state. Next you'll write the state transition methods. In these methods, you will check need to check an appropriate transition criterion to transition to the next state.
 
 Telemetry data from the drone is logged for review after the flight. You will use the logs to plot the trajectory of the drone and analyze the performance of the task. For more information check out the Flight Log section below...
 
@@ -149,38 +149,39 @@ The six states predefined for the state machine:
 * LANDING: the vehicle is landing on the ground
 * DISARMING: the vehicle is disarming
 
-The state machine methods are seperated into two different types: state methods and state callbacks. The state methods are meant to be run only when transitioning to their respective state. The state callbacks are checked while the drone is in the respective state every time a new Mavlink message is received.
+The state machine methods are seperated into two different types: state commands and state transitions. The state commands are meant to be run only when transitioning to their respective state. The state transitions are checked while the drone is in the respective state every time a new Mavlink message is received.
         
 
 ### State Methods
-The state methods required to be filled in are:
+The state commands required to be filled in are:
 
 ~~~
 
 	#Initiate the ARMING state, put the vehicle in guided mode and arm
     def arm(self):
-        #TODO: fill out this method
+        # TODO: fill out this method
         return
     
     #Initiate the TAKEOFF state, command the vehicle the target altitude (m)
     def takeoff(self,altitude=3.0):
-        #TODO: fill out this method
+        # TODO: fill out this method
         return
     
     #Initiate the WAYPOINT state, command the vehicle to the position specified as Lat, Long, Alt
     def waypoint(self,target):
-        #TODO: fill out this method
+        # TODO: fill out this method
         return
     
     #Initiate the LANDING state, command the vehicle to specified altitude (m)
     def land(self, altitude=0.0):
-        #TODO: fill out this method
+        # TODO: fill out this method
+
         return
     
     #Initiate the DIARMING state, command the vehicle to disarm
     def disarm(self):
-        #TODO; fill out this method
-        return        
+        # TODO: fill out this method
+        return    
 ~~~
 
 Each of these sets the current state and sends one (or more) Mavlink commands to the drone (a description of Mavlink commands if found below). These methods are meant to be run once and only on transition to the respective state. An example of this when transitioning to the MANUAL state is provided:
@@ -193,43 +194,55 @@ Each of these sets the current state and sends one (or more) Mavlink commands to
         return        
 ~~~
 
-The method sends a the command 'MAV_CMD_NAV_GUIDED_ENABLE'. The first parameter is set to '0', commanding the drone to disable 'GUIDED' mode. It also set the state to MANUAL, so the appropriate callback is checked.
+The method sends a the command 'MAV_CMD_NAV_GUIDED_ENABLE'. The first parameter is set to '0', commanding the drone to disable 'GUIDED' mode. It also set the state to MANUAL, so the appropriate transition method is checked.
 
-#### State Callbacks
-The next step is to fill in the appropriate callback. These functions are called every time a new Mavlink message is received from the drone while in its respective state. You will need to fill in the following callbacks:
+#### State Transitions
+The next step is to fill in the appropriate transition method. These method are called every time a new Mavlink message is received from the drone while in its respective state. You will need to fill in the following function:
 
 ~~~
 
-	# Save the current position as the home position and transition to the next state when the vehicle is armed and in guided mode
-    def arming_callback(self):
-        #TODO: fill out this callback
+	#Save the current position as the home position and transition to the next state when the vehicle is armed and in guided mode
+    def arming_transition(self):
+        # TODO: fill out this method
         return
         
     
-    # Transition to the next state when the target altitude is reach
-    def takeoff_callback(self):
-        # TODO: fill out this callback
+    #Transition to the next state when the target altitude is reach
+    def takeoff_transition(self):
+        # TODO; fill out this method
         return
     
         
     # Transition to the next state when the target waypoint is reached (within 1m)
-    def waypoint_callback(self):
-        #TODO: fill out this callback
+    def waypoint_transition(self):
+        # TODO; fill out this method
         return                
        
 
     # Transition to the next state when the drone is on the ground
-    def landing_callback(self):
-        #TODO: fill out this callback
+    def landing_transition(self):
+        # TODO; fill out this method
         return
     
     # Transition to the next state when the drone is disarmed
-    def disarming_callback(self):
-        #TODO: fill in this callback
+    def disarming_transition(self):
+        # TODO; fill out this method
         return
 ~~~
+An example of the 'disarming' transition method would be:
+~~~
 
-For convenience the Mavlink messages are parsed and sorted in the decode_mav_msg callback into different variables of the drone class. The following class variables hold the latest drone information receive from Mavlink:
+	# Transition to the next state when the drone is disarmed
+    def disarming_transition(self):
+        if ~self.armed:
+            self.manual(0)
+        return
+~~~
+This function checks to see if the drone is armed. When it detects that the drone is no longer armed, it transitions to the MANUAL state.
+
+#### Mavlink Callbacks
+
+For convenience the Mavlink messages are parsed in two callbacks, 'heartbeat callback' and 'global_position_ callback' into different variables of the drone class. The following class variables hold the latest drone information receive from Mavlink:
 
 
 * global_position: numpy array [Longitude (deg), Latitude (deg), Altitude (m)]
@@ -239,20 +252,9 @@ For convenience the Mavlink messages are parsed and sorted in the decode_mav_msg
 * guided: bool (True: Guided Mode, False: Manual mode)
 * connected: bool
 
-An example of the 'disarming' callback would be:
-
-~~~
-
-	# Transition to the next state when the drone is disarmed
-    def disarming_callback(self):
-        if ~self.armed:
-            self.manual(0)
-        return
-~~~
-This callback checks to see if the drone is armed. When it detects that the drone is no longer armed, it transitions to the MANUAL state.
 
 ### Running the State Machine
-After filling in the state methods and callbacks, you will run the mission:
+After filling in the state command and transition methods, you will run the mission:
 
 ~~~
 conda drone.py -r
@@ -269,9 +271,6 @@ The Connection class found in connection.py is a wrapper around the pymavlink li
 Commands are sent using the 'send_mav_command' method of the Connection class. The first input is the type of command specified by the enum mavutil.mavlink. The other next 7 inputs are all parameters specific to a command (the last three always correspond to x, y, z if applicable).
 
 Not all autopilots implement all commands in the same way. The simulator accepts a limited set of MAV_CMDs. For a list of MAV_CMDs implemented in the simulator, see below.
-
-Telemetry data received into the Drone class in the 'decode_mav_msg' callback. This callbacks assigns the data to the appropriate variables of the Drone class depending on the message type. For this project, only limited telemetry is available from the Drone.
-
 
 ### MAV_CMDs
 
