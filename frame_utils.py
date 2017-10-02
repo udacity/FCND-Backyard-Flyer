@@ -9,10 +9,10 @@ def global_to_local(global_position, global_home):
     (east, north, _, _) = utm.from_latlon(global_position[1],
                                           global_position[0])
                                           
-    local_position = [
+    local_position = np.array([
         north - north_home, east - east_home,
         -global_position[2]
-    ]
+    ])
     return local_position
 
 
@@ -24,8 +24,10 @@ def local_to_global(local_position, global_home):
                                north_home + local_position[0], zone_number,
                                zone_letter)
                                
-    lla = [lon, lat, -local_position[2]]
+    lla = np.array([lon, lat, -local_position[2]])
     return lla
+
+
 
 
 
