@@ -113,7 +113,7 @@ The GPS data is set to automatically log whenever the Drone class receives a GPS
 To log GPS data while flying manually, run the drone.py script as shown below:
 
 ~~~
-conda drone.py
+python drone.py
 ~~~
 
 Run this script after starting the simulator. It connects to the simulator using the Drone class and runs until tcp connection is broken. The connection will timeout if it doesn't receive a heartbeat message once every 10 seconds. The GPS data is automatically logged.
@@ -257,7 +257,7 @@ For convenience the Mavlink messages are parsed in two callbacks, 'heartbeat cal
 After filling in the state command and transition methods, you will run the mission:
 
 ~~~
-conda drone.py -r
+python drone.py -r
 ~~~
 
 Similar to the manual flight, the GPS data is automatically logged to the specified log file.
