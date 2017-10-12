@@ -15,9 +15,9 @@ class Connection(metaclass=ABCMeta):
         e.g. on how you would use in in the drone class, where you have created
         a variable 'conn = Connection()'
 
-        @conn.on_message('attitude')
-        def att_listener(_, name, att):
-            # do whatever with the att, which will be of type attitude
+        @conn.on_message(message_types.MSG_GLOBAL_POSITION)
+        def att_listener(_, name, gps):
+            # do whatever with the gps, which will be of type GlobalPosition
         """
 
         def decorator(fn):
@@ -67,6 +67,10 @@ class Connection(metaclass=ABCMeta):
 
     @abstractmethod
     def start(self):
+        pass
+
+    @abstractmethod
+    def stop(self):
         pass
 
     @abstractmethod
