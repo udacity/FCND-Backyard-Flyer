@@ -1,7 +1,8 @@
 from abc import ABCMeta, abstractmethod
 
 
-class Connection(metaclass=ABCMeta):
+class Connection():
+    __metaclass__ = ABCMeta
 
     def __init__(self):
         # every connection type will have a set of listeners
@@ -16,8 +17,14 @@ class Connection(metaclass=ABCMeta):
         a variable 'conn = Connection()'
 
         @conn.on_message(message_types.MSG_GLOBAL_POSITION)
-        def att_listener(_, name, gps):
+        def gps_listener(_, name, gps):
             # do whatever with the gps, which will be of type GlobalPosition
+
+        or 
+
+        @conn.on_message('*')
+        def all_msg_listener(_, name, msg):
+            # this is a listener for all message types, so break out the msg as defined by the name
         """
 
         def decorator(fn):
