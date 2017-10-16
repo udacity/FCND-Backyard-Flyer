@@ -41,40 +41,43 @@ class MavlinkConnection(connection.Connection):
             if msg is None:
                 continue
 
+            # TODO: see if this properly gets the timestamp
+            timestamp = msg._timestamp
+
             # parse out the message based on the type and call
             # the appropriate callbacks
             if msg.get_type == 'GLOBAL_POSITION_INT':
                 # parse out the gps position and trigger that callback
-                gps = mt.GlobalPosition(msg.lat/1e7, msg.lon/1e7, msg.alt/1000)
+                gps = mt.GlobalFrameMessage(timestamp, float(msg.lat)/1e7, float(msg.lon)/1e7, float(msg.alt)/1000)
                 self.notify_message_listeners(mt.MSG_GLOBAL_POSITION, gps)
 
                 # parse out the velocity and trigger that callback
-                vel = mt.Velocity(msg.vx/100, msg.vy/100, msg.vx/100)
+                vel = mt.LocalFrameMessage(timestamp, float(msg.vx)/100, float(msg.vy)/100, float(msg.vx)/100)
                 self.notify_message_listeners(mt.MSG_VELOCITY, vel)
 
             elif msg.get_type() == 'HEARTBEAT':
                 motors_armed = (msg.base_mode & mavutil.mavlink.MAV_MODE_FLAG_SAFETY_ARMED) != 0
 
                 # TODO: determine if want to broadcast all current mode types, not just boolean on manual
-                manual_control = False
+                guided_mode = True
                 if (msg.custom_mode & 1) != 0:
-                    manual_control = True
+                    guided_mode = False
 
-                state = mt.State(motors_armed, manual_control)
+                state = mt.StateMessage(timestamp, motors_armed, guided_mode)
                 self.notify_message_listeners(mt.MSG_STATE, state)
 
             elif msg.get_type() == 'LOCAL_POSITION_NED':
                 # parse out the local positin and trigger that callback
-                pos = mt.LocalPosition(msg.x, msg.y, msg.z)
+                pos = mt.LocalFrameMessage(timestamp, msg.x, msg.y, msg.z)
                 self.notify_message_listeners(mt.MSG_LOCAL_POSITION, pos)
 
                 # parse out the velocity and trigger that callback
-                vel = mt.Velocity(msg.vx, msg.vy, msg.vz)
+                vel = mt.LocalFrameMessage(timestamp, msg.vx, msg.vy, msg.vz)
                 self.notify_message_listeners(mt.MSG_VELOCITY, vel)
 
             elif msg.get_type() == 'HOME_POSITION':
                 # TODO: decode position information
-                home = mt.GlobalHomePosition()
+                home = mt.GlobalFrameMessage(timestamp, float(msg.lat)/1e7, float(msg.lon)/1e7, float(msg.alt)/1000)
                 self.notify_message_listeners(mt.MSG_GLOBAL_HOME, home)
 
             #elif msg.get_type() == 'ATTITUDE':

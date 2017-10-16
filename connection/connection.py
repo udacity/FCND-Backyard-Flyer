@@ -117,11 +117,15 @@ class Connection():
         pass
 
     @abstractmethod
-    def takeoff(self, alt):
+    def takeoff(self, n, e, d):
+        # mavlink takeoff/land functions need the position for takeoff/land
+        # connection class has n knowlege of the vehicle's current position, so drone class needs to send that info
         pass
 
     @abstractmethod
-    def land(self):
+    def land(self, n, e, d):
+        # mavlink takeoff/land functions need the position for takeoff/land
+        # connection class has n knowlege of the vehicle's current position, so drone class needs to send that info
         pass
 
     @abstractmethod
