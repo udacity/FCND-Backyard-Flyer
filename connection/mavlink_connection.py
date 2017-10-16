@@ -11,11 +11,16 @@ os.environ['MAVLINK20'] = '1'
 
 class MavlinkConnection(connection.Connection):
 
-    def __init__(self, device):
+    def __init__(self, device, threaded=False):
         self._message_listeners = {} #super.__init__()
-        #self._master = mavutil.mavlink_connection(device, source_system=190)
-        self._read_handle = threading.Thread(target=self.read_thread)
-        self._read_handle.daemon = True
+        if device is not "":
+            self._master = mavutil.mavlink_connection(device, source_system=190)
+        self._threaded = threaded
+        if threaded:
+            self._read_handle = threading.Thread(target=self.read_loop)
+            self._read_handle.daemon = True
+        else:
+            self._read_handle = None
         self._running = False
 
         self._target_system = 0
@@ -26,7 +31,9 @@ class MavlinkConnection(connection.Connection):
         self.notify_message_listeners('test', [])
 
 
-    def read_thread(self):
+    def read_loop(self):
+        # this is the main loop that wait for a mavlink messages, parses it accordingly, and triggers the corresponding callback(s)
+        # NOTE: since a single mavlink message can correspond to multiple custom messages, this loop needs to be handled by this class
         while (self._running):
             msg = self.wait_for_message()
 
@@ -100,12 +107,20 @@ class MavlinkConnection(connection.Connection):
     def start(self):
         # start the main thread
         self._running = True
-        self._read_handle.start()
+        if self._threaded:
+            self._read_handle.start()
+        else:
+            # NOTE: this is a full blocking function here!!
+            # TODO: find a correct way to terminate the read loop
+            read_loop()
+
 
     def stop(self):
         self._running = False
-        self._read_handle.join()
-        self._master.close()
+        if self._threaded:
+            self._read_handle.join()
+        else:
+            self._master.close()
 
     def send_long_command(self, command_type, param1, param2=0, param3=0, param4=0, param5=0, param6=0, param7=0):
         # send a command long helper function
