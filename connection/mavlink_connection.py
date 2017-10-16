@@ -54,9 +54,13 @@ class MavlinkConnection(connection.Connection):
 
             elif msg.get_type() == 'HEARTBEAT':
                 motors_armed = (msg.base_mode & mavutil.mavlink.MAV_MODE_FLAG_SAFETY_ARMED) != 0
-                # TODO: parse out if in offboard mode or manual mode (or straight up parse out the control mode...?)
-        
-                state = mt.State(motors_armed, mode)
+
+                # TODO: determine if want to broadcast all current mode types, not just boolean on manual
+                manual_control = False
+                if (msg.custom_mode & 1) != 0:
+                    manual_control = True
+
+                state = mt.State(motors_armed, manual_control)
                 self.notify_message_listeners(mt.MSG_STATE, state)
 
             elif msg.get_type() == 'LOCAL_POSITION_NED':
@@ -140,17 +144,17 @@ class MavlinkConnection(connection.Connection):
 
     def take_control(self):
         # TODO: look at PX4 documentation to figure out what custom and base modes they use
-        mode = 0
-        custom_mode = 0
-        base_mode = 0
-        self.send_long_command(mavutil.MAV_CMD_DO_SET_MODE, mode, custom_mode, base_mode)
+        mode = mavutil.mavlink.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED  # tells system to use PX4 custom commands
+        custom_mode = 6  # 6 == offboard control
+        custom_sub_mode = 0  # not used for manual/offboard
+        self.send_long_command(mavutil.MAV_CMD_DO_SET_MODE, mode, custom_mode, custom_sub_mode)
 
     def release_control(self):
         # TODO: look at PX4 documentation to figure out what custom and base modes they use
-        mode = 0
-        custom_mode = 0
-        base_mode = 0
-        self.send_long_command(mavutil.MAV_CMD_DO_SET_MODE, mode, custom_mode, base_mode)
+        mode = mavutil.mavlink.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED  # tells system to use PX4 custom commands
+        custom_mode = 1  # 1 == manual control
+        custom_sub_mode = 0  # not used for manual/offboard
+        self.send_long_command(mavutil.MAV_CMD_DO_SET_MODE, mode, custom_mode, custom_sub_mode)
 
     def cmd_attitude(self, yaw, pitch, roll, collective):
         time_boot_ms = 0  # TODO: figure out if this needs to be sent properly
@@ -199,7 +203,7 @@ class MavlinkConnection(connection.Connection):
         # since connection doesn't keep track of this info, have drone send it
         # abstract away that part in the drone class
         time_boot_ms = 0  # TODO: figure out if this needs to be sent properly
-        mask = 0b0000010111111000  # TODO: figure out the mask elements for a land command
+        mask = 0b0000010111111000 | 0x1000  # (0x1000 defines the setpoint as a takeoff setpoint)
         self._master.mav.set_position_target_local_ned_send(
             time_boot_ms, self._target_system, self._target_component,
             mavlink.mavutil.MAV_FRAME_LOCAL_NED, mask,
@@ -213,7 +217,7 @@ class MavlinkConnection(connection.Connection):
         # since connection doesn't keep track of this info, have drone send it
         # abstract away that part in the drone class
         time_boot_ms = 0  # TODO: figure out if this needs to be sent properly
-        mask = 0b0000010111111000  # TODO: figure out the mask elements for a land command
+        mask = 0b0000010111111000 | 0x2000 # (0x2000 defines the setpoint as a land setpoint)
         self._master.mav.set_position_target_local_ned_send(
             time_boot_ms, self._target_system, self._target_component,
             mavlink.mavutil.MAV_FRAME_LOCAL_NED, mask,
