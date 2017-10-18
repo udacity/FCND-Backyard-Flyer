@@ -2,8 +2,8 @@
 from pymavlink import mavutil
 import os
 import threading
-import connection
-import message_types as mt
+from . import connection
+from . import message_types as mt
 
 
 # force use of mavlink v2.0
@@ -41,7 +41,8 @@ class MavlinkConnection(connection.Connection):
             if msg is None:
                 continue
 
-            # TODO: see if this properly gets the timestamp
+            # this does indeed get timestamp, should double check format
+            # TODO: deice on timestamp format for messages
             timestamp = msg._timestamp
 
             # parse out the message based on the type and call
@@ -77,7 +78,7 @@ class MavlinkConnection(connection.Connection):
 
             elif msg.get_type() == 'HOME_POSITION':
                 # TODO: decode position information
-                home = mt.GlobalFrameMessage(timestamp, float(msg.lat)/1e7, float(msg.lon)/1e7, float(msg.alt)/1000)
+                home = mt.GlobalFrameMessage(timestamp, float(msg.latitude)/1e7, float(msg.longitude)/1e7, float(msg.altitude)/1000)
                 self.notify_message_listeners(mt.MSG_GLOBAL_HOME, home)
 
             #elif msg.get_type() == 'ATTITUDE':
@@ -119,7 +120,7 @@ class MavlinkConnection(connection.Connection):
         else:
             # NOTE: this is a full blocking function here!!
             # TODO: find a correct way to terminate the read loop
-            read_loop()
+            self.read_loop()
 
 
     def stop(self):
