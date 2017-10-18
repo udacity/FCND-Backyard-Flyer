@@ -12,6 +12,9 @@ os.environ['MAVLINK20'] = '1'
 class MavlinkConnection(connection.Connection):
 
     def __init__(self, device, threaded=False):
+        # IMPORTANT NOTE: if threaded is true, the thread will die immediately once all other processes stop
+        # which means that if f threaded is true, drone needs to maintain a while loop or something on the main thread or else tis thread will die immediately
+        # 
         self._message_listeners = {} #super.__init__()
         if device is not "":
             self._master = mavutil.mavlink_connection(device, source_system=190)
