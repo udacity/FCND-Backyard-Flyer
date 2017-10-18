@@ -40,7 +40,7 @@ Installing collected packages: future, lxml, pymavlink, utm
 Successfully installed future-0.16.0 lxml-4.0.0 pymavlink-2.2.4 utm-0.4.2
 #
 # To activate this environment, use:
-# > source activate backyard-flyerj
+# > source activate backyard-flyer
 #
 # To deactivate an active environment, use:
 # > source deactivate
