@@ -40,7 +40,7 @@ Installing collected packages: future, lxml, pymavlink, utm
 Successfully installed future-0.16.0 lxml-4.0.0 pymavlink-2.2.4 utm-0.4.2
 #
 # To activate this environment, use:
-# > source activate flyingcarnd-p0
+# > source activate backyard-flyerj
 #
 # To deactivate an active environment, use:
 # > source deactivate
@@ -55,14 +55,14 @@ $ conda env list
 # Sample output
 # conda environments:
 #
-flyingcarnd-p0           /usr/local/anaconda3/envs/flyingcarnd-p0
+backyard-flyer           /usr/local/anaconda3/envs/backyard-flyer
 root                  *  /usr/local/anaconda3
 ```
 
 In order to use the environment you must activate it in the following manner:
 
 ```sh
-source activate flyingcarnd-p0
+source activate backyard-flyer
 ```
 
 Deactivating the environment:
@@ -80,7 +80,7 @@ conda clean -tpy
 Removing the environment:
 
 ```sh
-conda env remove -n flyingcarnd-p0
+conda env remove -n backyard-flyer
 ```
 
 ## Drone Simulator
