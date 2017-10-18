@@ -1,8 +1,16 @@
 # -*- coding: utf-8 -*-
 import numpy as np
+import os
 
 class Logger:    
-    def __init__(self,filename):
+    def __init__(self,*args):
+        if len(*args)==0:
+            filename = os.path.join("Logs","NavLog.txt")
+        if len(*args)==1:
+            filename = os.path.join("Logs",*args[0])
+        elif len(*args)==2:
+            filename = os.path.path(*args[0],*args[1])
+        
         self.log = open(filename,'w')
         self.num_data = 0
         
