@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-import connection
-import math
-
-
+import logger
+import time
 
 
 class Drone:
@@ -64,6 +62,8 @@ class Drone:
                             'acceleration_raw_msg':self._update_acceleration_raw,
                             'euler_angle_msg':self._update_euler_angle,
                             'baro_msg':self._update_baro}
+        
+        
 		
         
     @property
@@ -74,6 +74,13 @@ class Drone:
         self._longitude = msg.longitude
         self._latitude = msg.latitude
         self._altitude = msg.altitude
+        
+        #Temporary until I figure out how we want to do the logger
+        data = [msg.time]
+        data.append(msg.longitude)
+        data.append(msg.latitude)
+        data.append(msg.altitude)
+        self.log.log_data(data)
     
     @property
     def global_home(self):
@@ -153,7 +160,7 @@ class Drone:
     def _update_barometer(self,msg):
         self._baro_altitude = msg.altitude
     
-    #@connection.on_messages('*')
+    @connection.on_message('*')
     def on_message_receive(self,msg_name,msg):
         """Sorts incoming messages, updates the drone state variables and runs callbacks"""
         if msg_name in self._update_property.keys():
@@ -169,32 +176,42 @@ class Drone:
         return decorator
     
     
-    #Command Methods
-    def connect(self, device):
+    #Command method wrappers
+    def connect(self, connection):
         ''' Conect to the specified device'''
-        self.connection = connection.Connection(device)
+        self.connection = connection
         timeout = self.connection.wait_for_message()
         
         if ~timeout:
             self.connected = True
         
-    def arm(self,armed):
-        """Send an arm/disarm command to the vehicle
-            armed: True- arm, False-disarm
-        """
+    def arm(self):
+        """Send an arm command to the vehicle"""
         try:
-            self.connection.arm(armed)
+            self.connection.arm()
         except:
             print("arm command not defined")
-    
-    def take_control(self,control):
-        """Toggle the control of the vehicle
-            control: True-computer control, False-Manual control
-        """
+            
+    def disarm(self):
+        """Send a disarm command to the vehicle"""
         try:
-            self.connection.take_control(control)
+            self.connection.disarm()
         except:
-            print("take_controm command not defined")
+            print("disarm command not defined")
+            
+    def take_control(self):
+        """Take control of the vehicle """
+        try:
+            self.connection.take_control()
+        except:
+            print("take_control command not defined")
+            
+    def release_control(self):
+        """Take control of the vehicle """
+        try:
+            self.connection.release_control()
+        except:
+            print("release_control command not defined")
     
     def cmd_position(self,north,east,down,heading):
         """ Command the local position and vehicle heading
@@ -249,176 +266,13 @@ class Drone:
         except:
             print("cmd_motors not defined")
             
+    
+    
+    def start(self):
+        """Run the drone"""
+        self.log = logger.Logger("Logs","NavLog.txt")
+        self.connection.start()
+        while True:
+            time.sleep(1)#
+            
 
-""" Message types
-
-Besides the state message, the other types are defined by the frame they are defined in
-
-"""
-    
-class Message:
-    """Message superclass, all messages will contain a time"""
-    def __init__(self,time):
-        self._time = time
-    
-    @property
-    def time(self):
-        return self._time
-
-class StateMessage(Message):
-    """Vehicle state change messages"""
-    def __init__(self,time,armed,guided):
-        super().__init__(time)
-        self._armed = armed
-        self._guided = guided
-
-    @property
-    def armed(self):
-        return self._armed
-    
-    @property
-    def guided(self):
-        return self._guided
-    
-    
-class GlobalFrameMessage(Message):
-    """Messages defined in the Global (Lat,Lon, Alt) frame"""
-    def __init__(self,time,latitude,longitude,altitude):
-        super().__init__(time)
-        self._longitude = longitude
-        self._latitude = latitude
-        self._altitude = altitude
-    
-    @property
-    def longitude(self):
-        return self._longitude
-    
-    @property
-    def latitude(self):
-        return self._latitude
-    
-    @property
-    def altitude(self):
-        return self._altitude
-    
-    @property
-    def global_vector(self):
-        return np.array([self._longitude,self._latitude,self._altitude])
-
-class LocalFrameMessage(Message):
-    """Messages defined in the Local (North,East,Down) frame"""
-    def __init__(self,time,north,east,down):
-        super().__init__(time)
-        self._north = north
-        self._east = east
-        self._down = down
-       
-    @property
-    def north(self):
-        return self._north
-    
-    @property
-    def east(self):
-        return self._east
-    
-    @property
-    def down(self):
-        return self._down
-    
-    @property
-    def local_vector(self):
-        return np.array([self._north,self._east,self._down])
-
-class BodyFrameMessage(Message):
-    """Messages defined in the body frame (x,y,z)"""
-    def __init__(self,time,x,y,z):
-        super().__init__(time)
-        self._x = x
-        self._y = y
-        self._z = z
-        
-    @property
-    def x(self):
-        return self._x
-    
-    @property
-    def y(self):
-        return self._y
-    
-    @property
-    def z(self):
-        return self._z
-    
-    @property
-    def body_vector(self):
-        return np.array([self._x,self._y,self._z])
-    
-class FrameMessage(Message):
-    """Messages defining the rotation between frames (Euler angles or Quaternions)"""
-    def ___init__(self,time,roll,pitch,yaw):
-        super().__init__(time)
-        self._roll = roll
-        self._pitch = pitch
-        self._yaw = yaw
-        
-        sp = math.sin(math.radians(pitch/2.0))
-        cp = math.cos(math.radians(pitch/2.0))
-        sr = math.sin(math.radians(roll/2.0))
-        cr = math.cos(math.radians(roll/2.0))
-        sy = math.sin(math.radians(yaw/2.0))
-        cy = math.cos(math.radians(yaw/2.0))
-        
-        self._qo = cr*cp*cy+sr*sp*sy
-        self._q1 = sr*cp*cy-cr*sp*sy
-        self._q2 = cr*sp*cy+sr*cp*sy
-        self._q3 = cr*cp*sy-sr*sp*cy
-    """ I need to figure out the right way to do multiple constructors for a class
-    def __init__(self,time,q0,q1,q2,q3):
-        super().__init__(time)
-        self._qo = q0
-        self._q1 = q1
-        self._q2 = q2
-        self._q3 = q3
-        
-        self._roll = math.degrees(math.atan2(2.0*(q0*q1+q2*q3),1.0-2.0*(q1**2+q2**2)))
-        self._pitch = math.degrees(math.asin(2.0*(q0*q2-q3*q1)))
-        self._yaw = math.degrees(math.atain2(2.0*(q0*q3+q1*q2),1.0-2.0*(q2**2+q3**2)))
-        
-    """
-    @property
-    def roll(self):
-        return self._roll
-    
-    @property
-    def pitch(self):
-        return self._roll
-    
-    @property
-    def yaw(self):
-        return self._yaw
-    
-    @property
-    def euler_angles(self):
-        return np.array([self._roll,self._pitch,self._yaw])
-    
-    @property
-    def quaternions(self):
-        return np.array([self._q0,self._q1,self._q2,self.q3])
-    
-    @property
-    def q0(self):
-        return self._q0
-    
-    @property
-    def q1(self):
-        return self._q1
-    
-    @property
-    def q2(self):
-        return self._q2
-    
-    @property
-    def q3(self):
-        return self._q3
-
-    
