@@ -118,8 +118,15 @@ class BodyFrameMessage(Message):
 
 class FrameMessage(Message):
     """Messages defining the rotation between frames (Euler angles or Quaternions)"""
-    def ___init__(self,time,roll,pitch,yaw):
+    def __init__(self,*args):
+        if len(*args==4):
+            self.init_euler(args[0],args[1],args[2],args[3])
+        elif len(*args==5):
+            self.init_quaternion(args[0],args[1],args[2],args[3],args[4])
+    
+    def init_euler(self,time,roll,pitch,yaw):
         super().__init__(time)
+        
         self._roll = roll
         self._pitch = pitch
         self._yaw = yaw
@@ -135,8 +142,8 @@ class FrameMessage(Message):
         self._q1 = sr*cp*cy-cr*sp*sy
         self._q2 = cr*sp*cy+sr*cp*sy
         self._q3 = cr*cp*sy-sr*sp*cy
-    """ I need to figure out the right way to do multiple constructors for a class
-    def __init__(self,time,q0,q1,q2,q3):
+
+    def init_quaternion(self,time,q0,q1,q2,q3):
         super().__init__(time)
         self._qo = q0
         self._q1 = q1
@@ -147,7 +154,6 @@ class FrameMessage(Message):
         self._pitch = math.degrees(math.asin(2.0*(q0*q2-q3*q1)))
         self._yaw = math.degrees(math.atain2(2.0*(q0*q3+q1*q2),1.0-2.0*(q2**2+q3**2)))
         
-    """
     @property
     def roll(self):
         return self._roll
