@@ -38,6 +38,13 @@ class TestClass:
             elif name == 'test':
                 self.notify_attribute_listeners('test', 42)
 
+        # these neeed to be defined within the init method to work properly
+        @self.on_attribute('*')
+        def attribute_listener_test(self, name, data):
+            ''' dummy listener that is registered for all attribute changes '''
+            print("attribute listener triggered")
+            print(name)
+
 
     def on_attribute(self, name):
         """
@@ -118,11 +125,7 @@ class TestClass:
         return [self._lat, self._lon, self._alt]
 
 
-    @on_attribute('*')
-    def attribute_listener_test(self, name, data):
-        ''' dummy listener that is registered for all attribute changes '''
-        print("attribute listener triggered")
-        print(name)
+    
 
 
 test = TestClass()
