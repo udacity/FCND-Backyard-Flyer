@@ -50,7 +50,7 @@ class MavlinkConnection(connection.Connection):
 
             # parse out the message based on the type and call
             # the appropriate callbacks
-            if msg.get_type == 'GLOBAL_POSITION_INT':
+            if msg.get_type() == 'GLOBAL_POSITION_INT':
                 # parse out the gps position and trigger that callback
                 gps = mt.GlobalFrameMessage(timestamp, float(msg.lat)/1e7, float(msg.lon)/1e7, float(msg.alt)/1000)
                 self.notify_message_listeners(mt.MSG_GLOBAL_POSITION, gps)
