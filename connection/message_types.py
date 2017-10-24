@@ -13,6 +13,7 @@ MSG_GLOBAL_POSITION = 'global_position_msg'
 MSG_LOCAL_POSITION = 'local_position_msg'
 MSG_GLOBAL_HOME = 'global_home_msg'
 MSG_VELOCITY = 'local_velocity_msg'
+MSG_CONNECTION_CLOSED = 'connection_closed_msg'
 
 
 class Message:
