@@ -78,8 +78,8 @@ class MavlinkConnection(connection.Connection):
                 # TODO: determine if want to broadcast all current mode types, not just boolean on manual
                 guided_mode = False
                 print(msg.custom_mode)
-                # TODO: figure out the correct custom mode
-                if (msg.custom_mode & 393216) != 0:
+                # TODO: figure out the proper way to check this custom mode (it's a bitfield)
+                if (msg.custom_mode == 393216) != 0:
                     guided_mode = True
 
                 state = mt.StateMessage(timestamp, motors_armed, guided_mode)
