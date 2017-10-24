@@ -76,9 +76,11 @@ class MavlinkConnection(connection.Connection):
                 motors_armed = (msg.base_mode & mavutil.mavlink.MAV_MODE_FLAG_SAFETY_ARMED) != 0
 
                 # TODO: determine if want to broadcast all current mode types, not just boolean on manual
-                guided_mode = True
-                if (msg.custom_mode & 1) != 0:
-                    guided_mode = False
+                guided_mode = False
+                print(msg.custom_mode)
+                # TODO: figure out the correct custom mode
+                if (msg.custom_mode & 393216) != 0:
+                    guided_mode = True
 
                 state = mt.StateMessage(timestamp, motors_armed, guided_mode)
                 self.notify_message_listeners(mt.MSG_STATE, state)
