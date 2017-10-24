@@ -2,6 +2,7 @@
 from pymavlink import mavutil
 import os
 import threading
+import time
 from . import connection
 from . import message_types as mt
 
@@ -37,12 +38,24 @@ class MavlinkConnection(connection.Connection):
     def read_loop(self):
         # this is the main loop that wait for a mavlink messages, parses it accordingly, and triggers the corresponding callback(s)
         # NOTE: since a single mavlink message can correspond to multiple custom messages, this loop needs to be handled by this class
+        last_msg_time = time.time()
+        timeout = 5  # the number of seconds to wait of no messages before calling a connection terminated
         while (self._running):
+            current_time = time.time()
             msg = self.wait_for_message()
+
+            # if we haven't heard a message in a given amount of time, send a signal to kill everything
+            if current_time - last_msg_time > timeout:
+                print("timeout too long!")
+                self.notify_message_listeners(mt.MSG_CONNECTION_CLOSED, 0)
+                # TODO: maybe want to set running to false here...?
 
             # if no message or a bad message was received, just move along
             if msg is None:
                 continue
+
+            # update the time of the last message
+            last_msg_time = current_time
 
             # this does indeed get timestamp, should double check format
             # TODO: deice on timestamp format for messages
@@ -136,9 +149,10 @@ class MavlinkConnection(connection.Connection):
     def send_long_command(self, command_type, param1, param2=0, param3=0, param4=0, param5=0, param6=0, param7=0):
         # send a command long helper function
         # TODO: decide how to handle the frame part...
+        confirmation = 0  # may want this as an input....
         self._master.mav.command_long_send(
             self._target_system, self._target_component,
-            mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT, command_type,
+            command_type, confirmation,
             param1, param2, param3, param4, param4, param6, param7)
 
     def arm(self):
@@ -154,14 +168,14 @@ class MavlinkConnection(connection.Connection):
         mode = mavutil.mavlink.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED  # tells system to use PX4 custom commands
         custom_mode = 6  # 6 == offboard control
         custom_sub_mode = 0  # not used for manual/offboard
-        self.send_long_command(mavutil.MAV_CMD_DO_SET_MODE, mode, custom_mode, custom_sub_mode)
+        self.send_long_command(mavutil.mavlink.MAV_CMD_DO_SET_MODE, mode, custom_mode, custom_sub_mode)
 
     def release_control(self):
         # TODO: look at PX4 documentation to figure out what custom and base modes they use
-        mode = mavutil.mavlink.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED  # tells system to use PX4 custom commands
+        mode = mavutil.mavlink.mavlink.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED  # tells system to use PX4 custom commands
         custom_mode = 1  # 1 == manual control
         custom_sub_mode = 0  # not used for manual/offboard
-        self.send_long_command(mavutil.MAV_CMD_DO_SET_MODE, mode, custom_mode, custom_sub_mode)
+        self.send_long_command(mavutil.mavlink.MAV_CMD_DO_SET_MODE, mode, custom_mode, custom_sub_mode)
 
     def cmd_attitude(self, yaw, pitch, roll, collective):
         time_boot_ms = 0  # TODO: figure out if this needs to be sent properly
@@ -185,11 +199,11 @@ class MavlinkConnection(connection.Connection):
         mask = 0b0000010111000111
         self._master.mav.set_position_target_local_ned_send(
             time_boot_ms, self._target_system, self._target_component,
-            mavlink.mavutil.MAV_FRAME_LOCAL_NED, mask,
+            mavutil.mavlink.MAV_FRAME_LOCAL_NED, mask,
             0, 0, 0,
             vn, ve, vd,
             0, 0, 0,
-            yaw, 0)
+            heading, 0)
 
     def cmd_motors(self, motor1, motor2, motor3, motor4):
         pass
@@ -199,13 +213,13 @@ class MavlinkConnection(connection.Connection):
         mask = 0b0000010111111000
         self._master.mav.set_position_target_local_ned_send(
             time_boot_ms, self._target_system, self._target_component,
-            mavlink.mavutil.MAV_FRAME_LOCAL_NED, mask,
+            mavutil.mavlink.MAV_FRAME_LOCAL_NED, mask,
             n, e, d,
             0, 0, 0,
             0, 0, 0,
-            yaw, 0)
+            heading, 0)
 
-    def takeoff(self, n, e, d, yaw):
+    def takeoff(self, n, e, d, heading):
         # for mavlink to PX4 need to specify the NED location for landing
         # since connection doesn't keep track of this info, have drone send it
         # abstract away that part in the drone class
@@ -213,13 +227,13 @@ class MavlinkConnection(connection.Connection):
         mask = 0b0000010111111000 | 0x1000  # (0x1000 defines the setpoint as a takeoff setpoint)
         self._master.mav.set_position_target_local_ned_send(
             time_boot_ms, self._target_system, self._target_component,
-            mavlink.mavutil.MAV_FRAME_LOCAL_NED, mask,
+            mavutil.mavlink.MAV_FRAME_LOCAL_NED, mask,
             n, e, d,
             0, 0, 0,
             0, 0, 0,
-            yaw, 0)
+            heading, 0)
 
-    def land(self, n, e, d, yaw):
+    def land(self, n, e, d, heading):
         # for mavlink to PX4 need to specify the NED location for landing
         # since connection doesn't keep track of this info, have drone send it
         # abstract away that part in the drone class
@@ -227,11 +241,11 @@ class MavlinkConnection(connection.Connection):
         mask = 0b0000010111111000 | 0x2000 # (0x2000 defines the setpoint as a land setpoint)
         self._master.mav.set_position_target_local_ned_send(
             time_boot_ms, self._target_system, self._target_component,
-            mavlink.mavutil.MAV_FRAME_LOCAL_NED, mask,
+            mavutil.mavlink.MAV_FRAME_LOCAL_NED, mask,
             n, e, d,
             0, 0, 0,
             0, 0, 0,
-            yaw, 0)
+            heading, 0)
 
     def set_home_position(self, lat, lon, alt):
         self.send_long_command(mavutil.mavlink.MAV_CMD_DO_SET_HOME, 0, 0, 0, 0, lat, lon, alt)
