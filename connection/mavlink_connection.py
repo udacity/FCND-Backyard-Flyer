@@ -10,6 +10,9 @@ from . import message_types as mt
 # force use of mavlink v2.0
 os.environ['MAVLINK20'] = '1'
 
+# a constant that isn't defined in Mavlink but is useful for PX4
+PX4_MODE_OFFBOARD = 6
+
 class MavlinkConnection(connection.Connection):
 
     def __init__(self, device, threaded=False):
@@ -18,7 +21,7 @@ class MavlinkConnection(connection.Connection):
         # 
         self._message_listeners = {} #super.__init__()
         if device is not "":
-            self._master = mavutil.mavlink_connection(device, source_system=190)
+            self._master = mavutil.mavlink_connection(device, source_system=1)
         self._threaded = threaded
         if threaded:
             self._read_handle = threading.Thread(target=self.read_loop)
@@ -27,8 +30,8 @@ class MavlinkConnection(connection.Connection):
             self._read_handle = None
         self._running = False
 
-        self._target_system = 0
-        self._target_component = 0
+        self._target_system = 1
+        self._target_component = 1
 
     def testcallback(self):
         print("testing callback")
@@ -77,9 +80,10 @@ class MavlinkConnection(connection.Connection):
 
                 # TODO: determine if want to broadcast all current mode types, not just boolean on manual
                 guided_mode = False
-                print(msg.custom_mode)
-                # TODO: figure out the proper way to check this custom mode (it's a bitfield)
-                if (msg.custom_mode == 393216) != 0:
+
+                # extract whether or not we are in offboard mode for PX4 (the main mode)
+                main_mode = (msg.custom_mode & 0x000F0000) >> 16
+                if main_mode == PX4_MODE_OFFBOARD:
                     guided_mode = True
 
                 state = mt.StateMessage(timestamp, motors_armed, guided_mode)

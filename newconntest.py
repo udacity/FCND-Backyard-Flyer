@@ -53,9 +53,29 @@ class TestClass:
             ''' dummy listener that is registered for all attribute changes '''
             #print("attribute listener triggered")
             if name == 'state':
-                print("state update")
+                #print("state update")
+                i = 0
 
             # TODO: need to make more specific attribute listeners with specific capabilities
+
+        @self.on_attribute('gps')
+        def gps_listener_test(self, name, data):            
+            # need to be constantly sending commands for PX4 to accept offboard control
+            # send a position
+            if self.state[0] is False or self.state[1] is False:
+                self.mavconn.cmd_position(0, 0, 0, 0)
+            else:
+                self.mavconn.cmd_position(0, 0, 0, 3)
+                print("takeoff requested")
+
+        @self.on_attribute('state')
+        def state_listener_test(self, name, data):
+            if self.state[1] is False:
+                self.mavconn.take_control()
+                print("requesting offboard")
+            elif self.state[0] is False:
+                self.mavconn.arm()
+                print("arming")
 
 
     def on_attribute(self, name):
@@ -121,6 +141,8 @@ class TestClass:
         ''' function that effectively is a 5Hz loop '''
         desired_rate = 1/5.0  # NOTE: PX4 needs at least 2(?) Hz
 
+        takeoff = False
+
         prev_time = 0
         while self._connection_alive:
             # rate limit the loop to a specific rate
@@ -130,10 +152,8 @@ class TestClass:
 
             # update the time
             prev_time = current_time
-            print(self.gps_position)
 
-            self.mavconn.cmd_position(0, 0, 0, 0)  # need to be constantly sending commands for PX4 to accept offboard control
-
+            '''
             if self.state[1] is False:
                 self.mavconn.take_control()  # request offboard control of the vehicle
                 print("requesting offboard control")
@@ -141,8 +161,14 @@ class TestClass:
             elif self.state[0] is False:
                 # TODO: probably a better way of sending an arm command
                 # especially since this loop is running 5x faster than the state info is updated
-                #self.mavconn.arm()  # this would ideally be done by simply calling self.arm(), just not needed for testing connection class atm
+                self.mavconn.arm()  # this would ideally be done by simply calling self.arm(), just not needed for testing connection class atm
                 print("sending arm command")
+
+            elif not takeoff:
+                self.mavconn.takeoff(0, 0, 0, -3)
+                print("sending takeoff command")
+                takeoff = True
+            '''
 
 
             # TODO: add sending of messages through the connection
