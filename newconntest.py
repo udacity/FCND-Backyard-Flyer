@@ -1,13 +1,14 @@
 from connection import mavlink_connection
 from connection import message_types as mt
+import time
 
 
 class TestClass:
 
-	def __init__(self):
-		#device = "" #"tcp:127.0.0.1:5760"
-		device = "udp:127.0.0.1:14540"
-		self.mavconn = mavlink_connection.MavlinkConnection(device, threaded=True)
+    def __init__(self):
+        #device = "" #"tcp:127.0.0.1:5760"
+        device = "udp:127.0.0.1:14540"
+        self.mavconn = mavlink_connection.MavlinkConnection(device, threaded=True)
 
         # connection state
         self._connection_alive = True
@@ -15,21 +16,22 @@ class TestClass:
         # the list of attribute listeners
         self._attribute_listeners = {}
 
+        # state information
+        self._armed = False
+        self._offboard = False
+
         # GPS information
         self._lat = 0
         self._lon = 0
         self._alt = 0
 
         @self.mavconn.on_message('*')
-        def testing(_, name, msg):
-            print("got a message")
-            print(name)
-            print(msg)
+        def connection_listener(_, name, msg):
 
             if name == mt.MSG_GLOBAL_POSITION:
-                self._lat = msg.lat
-                self._lon = msg.lon
-                self._alt = msg.alt
+                self._lat = msg.latitude
+                self._lon = msg.longitude
+                self._alt = msg.altitude
                 self.notify_attribute_listeners('gps', self.gps_position)
 
             elif name == mt.MSG_CONNECTION_CLOSED:
@@ -38,12 +40,22 @@ class TestClass:
             elif name == 'test':
                 self.notify_attribute_listeners('test', 42)
 
+            elif name == mt.MSG_STATE:
+                self._armed = msg.armed
+                self._offboard = msg.guided
+                self.notify_attribute_listeners('state', self.state)
+
+            # TODO: add handling for all other messages here
+
         # these neeed to be defined within the init method to work properly
         @self.on_attribute('*')
         def attribute_listener_test(self, name, data):
             ''' dummy listener that is registered for all attribute changes '''
-            print("attribute listener triggered")
-            print(name)
+            #print("attribute listener triggered")
+            if name == 'state':
+                print("state update")
+
+            # TODO: need to make more specific attribute listeners with specific capabilities
 
 
     def on_attribute(self, name):
@@ -84,23 +96,19 @@ class TestClass:
             try:
                 fn(self, name, data)
             except Exception as e:
-                errprinter('>>> Exception in message handler for %s' %
-                           name)
-                errprinter('>>> ' + str(e))
+                print("[ERROR] handling attribute listener")
 
         for fn in self._attribute_listeners.get('*', []):
             try:
                 fn(self, name, data)
             except Exception as e:
-                errprinter('>>> Exception in message handler for %s' %
-                           name)
-                errprinter('>>> ' + str(e))
+                print("[ERROR] handling attribute listener")
 
-	def start(self):
-		
+    def start(self):
+
         # test a callback
         self.mavconn.testcallback()
-		
+
         # start running the connection thread in the background
         self.mavconn.start()
 
@@ -110,13 +118,33 @@ class TestClass:
         # TODO: need to make sure that this order works, not sure if need swap the order and start this run loop first
 
     def run_loop(self):
-        ''' function that effectively is a 50Hz loop '''
+        ''' function that effectively is a 5Hz loop '''
+        desired_rate = 1/5.0  # NOTE: PX4 needs at least 2(?) Hz
 
-        i = 0
-        while _connection_alive:
-            i += 1
+        prev_time = 0
+        while self._connection_alive:
+            # rate limit the loop to a specific rate
+            current_time = time.time()
+            if current_time - prev_time < desired_rate:
+                continue
 
-            # TODO: add some rate limiting here
+            # update the time
+            prev_time = current_time
+            print(self.gps_position)
+
+            self.mavconn.cmd_position(0, 0, 0, 0)  # need to be constantly sending commands for PX4 to accept offboard control
+
+            if self.state[1] is False:
+                self.mavconn.take_control()  # request offboard control of the vehicle
+                print("requesting offboard control")
+
+            elif self.state[0] is False:
+                # TODO: probably a better way of sending an arm command
+                # especially since this loop is running 5x faster than the state info is updated
+                #self.mavconn.arm()  # this would ideally be done by simply calling self.arm(), just not needed for testing connection class atm
+                print("sending arm command")
+
+
             # TODO: add sending of messages through the connection
             
 
@@ -124,6 +152,9 @@ class TestClass:
     def gps_position(self):
         return [self._lat, self._lon, self._alt]
 
+    @property
+    def state(self):
+        return [self._armed, self._offboard]
 
     
 
