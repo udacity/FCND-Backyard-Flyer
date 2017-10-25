@@ -31,7 +31,7 @@ class MavlinkConnection(connection.Connection):
         # IMPORTANT NOTE: if threaded is true, the thread will die immediately once all other processes stop
         # which means that if f threaded is true, drone needs to maintain a while loop or something on the main thread or else tis thread will die immediately
         # 
-        self._message_listeners = {} #super.__init__()
+        super().__init__()
         if device is not "":
             self._master = mavutil.mavlink_connection(device)
         self._threaded = threaded
@@ -252,10 +252,11 @@ class MavlinkConnection(connection.Connection):
             0, 0, 0,
             0, 0)
 
-    def land(self, n, e, d):
+    def land(self, n, e):
         # for mavlink to PX4 need to specify the NED location for landing
         # since connection doesn't keep track of this info, have drone send it
         # abstract away that part in the drone class
+        d = 0  # going to land, so just set d to 0
         time_boot_ms = 0  # this does not need to be set to a specific time
         mask = MASK_IS_LAND
         mask |= (MASK_IGNORE_YAW_RATE | MASK_IGNORE_YAW | MASK_IGNORE_ACCELERATION | MASK_IGNORE_VELOCITY)

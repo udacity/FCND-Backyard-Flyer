@@ -8,6 +8,7 @@ Besides the state message, the other types are defined by the frame they are def
 # enum for he names to use for setting callbacks
 # this is to ensure that all the files are using the same names for the messages
 # implementations should use the variable names instead of the strings to minimize typo based errors
+MSG_ALL = '*'
 MSG_STATE = 'state_msg'
 MSG_GLOBAL_POSITION = 'global_position_msg'
 MSG_LOCAL_POSITION = 'local_position_msg'
