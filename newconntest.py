@@ -65,7 +65,7 @@ class TestClass:
             if self.state[0] is False or self.state[1] is False:
                 self.mavconn.cmd_position(0, 0, 0, 0)
             else:
-                self.mavconn.cmd_position(0, 0, 0, 3)
+                self.mavconn.takeoff(0, 0, -3)
                 print("takeoff requested")
 
         @self.on_attribute('state')

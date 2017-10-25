@@ -13,6 +13,18 @@ os.environ['MAVLINK20'] = '1'
 # a constant that isn't defined in Mavlink but is useful for PX4
 PX4_MODE_OFFBOARD = 6
 
+# useful masks for sending commands
+MASK_IGNORE_POSITION = 0x007
+MASK_IGNORE_VELOCITY = 0x038
+MASK_IGNORE_ACCELERATION = 0x1C0
+MASK_IGNORE_YAW = 0x400
+MASK_IGNORE_YAW_RATE = 0x800
+
+MASK_IS_FORCE = (1 << 9)
+MASK_IS_TAKEOFF = 0x1000
+MASK_IS_LAND = 0x2000
+MASK_IS_LOITER = 0x3000
+
 class MavlinkConnection(connection.Connection):
 
     def __init__(self, device, threaded=False):
@@ -21,7 +33,7 @@ class MavlinkConnection(connection.Connection):
         # 
         self._message_listeners = {} #super.__init__()
         if device is not "":
-            self._master = mavutil.mavlink_connection(device, source_system=1)
+            self._master = mavutil.mavlink_connection(device)
         self._threaded = threaded
         if threaded:
             self._read_handle = threading.Thread(target=self.read_loop)
@@ -103,6 +115,9 @@ class MavlinkConnection(connection.Connection):
                 home = mt.GlobalFrameMessage(timestamp, float(msg.latitude)/1e7, float(msg.longitude)/1e7, float(msg.altitude)/1000)
                 self.notify_message_listeners(mt.MSG_GLOBAL_HOME, home)
 
+            elif msg.get_type() == 'POSITION_TARGET_LOCAL_NED':
+                print(msg)
+
             #elif msg.get_type() == 'ATTITUDE':
 
 
@@ -154,7 +169,6 @@ class MavlinkConnection(connection.Connection):
 
     def send_long_command(self, command_type, param1, param2=0, param3=0, param4=0, param5=0, param6=0, param7=0):
         # send a command long helper function
-        # TODO: decide how to handle the frame part...
         confirmation = 0  # may want this as an input....
         self._master.mav.command_long_send(
             self._target_system, self._target_component,
@@ -170,21 +184,19 @@ class MavlinkConnection(connection.Connection):
         self.send_long_command(mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM, 0)
 
     def take_control(self):
-        # TODO: look at PX4 documentation to figure out what custom and base modes they use
         mode = mavutil.mavlink.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED  # tells system to use PX4 custom commands
-        custom_mode = 6  # 6 == offboard control
+        custom_mode = PX4_MODE_OFFBOARD
         custom_sub_mode = 0  # not used for manual/offboard
         self.send_long_command(mavutil.mavlink.MAV_CMD_DO_SET_MODE, mode, custom_mode, custom_sub_mode)
 
     def release_control(self):
-        # TODO: look at PX4 documentation to figure out what custom and base modes they use
         mode = mavutil.mavlink.mavlink.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED  # tells system to use PX4 custom commands
         custom_mode = 1  # 1 == manual control
         custom_sub_mode = 0  # not used for manual/offboard
         self.send_long_command(mavutil.mavlink.MAV_CMD_DO_SET_MODE, mode, custom_mode, custom_sub_mode)
 
     def cmd_attitude(self, yaw, pitch, roll, collective):
-        time_boot_ms = 0  # TODO: figure out if this needs to be sent properly
+        time_boot_ms = 0  # this does not need to be set to a specific time
         # TODO: convert the attitude to a quaternion
         q = [0, 0, 0, 0]
         mask = 0b00000111
@@ -193,7 +205,7 @@ class MavlinkConnection(connection.Connection):
             q, 0, 0, 0, collective)
 
     def cmd_attitude_rate(self, yaw_rate, pitch_rate, roll_rate, collective):
-        time_boot_ms = 0  # TODO: figure out if this needs to be sent properly
+        time_boot_ms = 0  # this does not need to be set to a specific time
         q = [0, 0, 0, 0]
         mask = 0b10000000
         self._master.mav.set_attitude_target_send(
@@ -201,8 +213,8 @@ class MavlinkConnection(connection.Connection):
             q, roll_rate, pitch_rate, yaw_rate, collective)        
 
     def cmd_velocity(self, vn, ve, vd, heading):
-        time_boot_ms = 0  # TODO: figure out if this needs to be sent properly
-        mask = 0b0000010111000111
+        time_boot_ms = 0  # this does not need to be set to a specific time
+        mask = (MASK_IGNORE_YAW_RATE | MASK_IGNORE_ACCELERATION | MASK_IGNORE_POSITION)
         self._master.mav.set_position_target_local_ned_send(
             time_boot_ms, self._target_system, self._target_component,
             mavutil.mavlink.MAV_FRAME_LOCAL_NED, mask,
@@ -215,8 +227,8 @@ class MavlinkConnection(connection.Connection):
         pass
 
     def cmd_position(self, n, e, d, heading):
-        time_boot_ms = 0  # TODO: figure out if this needs to be sent properly
-        mask = 0b0000010111111000
+        time_boot_ms = 0  # this does not need to be set to a specific time
+        mask = (MASK_IGNORE_YAW_RATE | MASK_IGNORE_ACCELERATION | MASK_IGNORE_VELOCITY)
         self._master.mav.set_position_target_local_ned_send(
             time_boot_ms, self._target_system, self._target_component,
             mavutil.mavlink.MAV_FRAME_LOCAL_NED, mask,
@@ -225,33 +237,35 @@ class MavlinkConnection(connection.Connection):
             0, 0, 0,
             heading, 0)
 
-    def takeoff(self, n, e, d, heading):
+    def takeoff(self, n, e, d):
         # for mavlink to PX4 need to specify the NED location for landing
         # since connection doesn't keep track of this info, have drone send it
         # abstract away that part in the drone class
-        time_boot_ms = 0  # TODO: figure out if this needs to be sent properly
-        mask = 0b0000010111111000 | 0x1000  # (0x1000 defines the setpoint as a takeoff setpoint)
+        time_boot_ms = 0  # this does not need to be set to a specific time
+        mask = MASK_IS_TAKEOFF
+        mask |= (MASK_IGNORE_YAW_RATE | MASK_IGNORE_YAW | MASK_IGNORE_ACCELERATION | MASK_IGNORE_VELOCITY)
         self._master.mav.set_position_target_local_ned_send(
             time_boot_ms, self._target_system, self._target_component,
             mavutil.mavlink.MAV_FRAME_LOCAL_NED, mask,
             n, e, d,
             0, 0, 0,
             0, 0, 0,
-            heading, 0)
+            0, 0)
 
-    def land(self, n, e, d, heading):
+    def land(self, n, e, d):
         # for mavlink to PX4 need to specify the NED location for landing
         # since connection doesn't keep track of this info, have drone send it
         # abstract away that part in the drone class
-        time_boot_ms = 0  # TODO: figure out if this needs to be sent properly
-        mask = 0b0000010111111000 | 0x2000 # (0x2000 defines the setpoint as a land setpoint)
+        time_boot_ms = 0  # this does not need to be set to a specific time
+        mask = MASK_IS_LAND
+        mask |= (MASK_IGNORE_YAW_RATE | MASK_IGNORE_YAW | MASK_IGNORE_ACCELERATION | MASK_IGNORE_VELOCITY)
         self._master.mav.set_position_target_local_ned_send(
             time_boot_ms, self._target_system, self._target_component,
             mavutil.mavlink.MAV_FRAME_LOCAL_NED, mask,
             n, e, d,
             0, 0, 0,
             0, 0, 0,
-            heading, 0)
+            0, 0)
 
     def set_home_position(self, lat, lon, alt):
         self.send_long_command(mavutil.mavlink.MAV_CMD_DO_SET_HOME, 0, 0, 0, 0, lat, lon, alt)
