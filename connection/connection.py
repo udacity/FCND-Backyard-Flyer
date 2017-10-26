@@ -1,3 +1,9 @@
+"""API definition for connections to a drone
+
+defines a class to be subclassed by specific protocol implementations for 
+communication with a drone.
+"""
+
 from abc import ABCMeta, abstractmethod
 
 
@@ -118,6 +124,16 @@ class Connection():
     @abstractmethod
     def stop(self):
         """command to stop a connection with a drone"""
+        pass
+
+    @abstractmethod
+    def dispatch_loop(self):
+        """main loop that triggers callbacks when new messages come in
+        
+        dispatch loop that runs and when each new message comes in over the 
+        implemented protocol, translates the message to those defines in 
+        `message_types.py` and triggers the callbacks.
+        """
         pass
 
     @abstractmethod

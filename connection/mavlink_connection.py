@@ -63,7 +63,7 @@ class MavlinkConnection(connection.Connection):
 
         # set up any of the threading, as needed
         if threaded:
-            self._read_handle = threading.Thread(target=self.read_loop)
+            self._read_handle = threading.Thread(target=self.dispatch_loop)
             self._read_handle.daemon = True
         else:
             self._read_handle = None
@@ -75,7 +75,7 @@ class MavlinkConnection(connection.Connection):
 
         self._timeout = 5 # seconds to wait of no messages before termination
 
-    def read_loop(self):
+    def dispatch_loop(self):
         """main loop to read from the drone
 
         continually listens to the drone connection for incoming messages.
@@ -226,7 +226,7 @@ class MavlinkConnection(connection.Connection):
             self._read_handle.start()
         else:
             # NOTE: this is a full blocking function here!!
-            self.read_loop()
+            self.dispatch_loop()
 
     def stop(self):
         self._running = False
