@@ -126,9 +126,6 @@ class TestClass:
 
     def start(self):
 
-        # test a callback
-        self.mavconn.testcallback()
-
         # start running the connection thread in the background
         self.mavconn.start()
 
