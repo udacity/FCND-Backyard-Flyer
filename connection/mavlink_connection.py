@@ -11,6 +11,7 @@ from . import message_types as mt
 os.environ['MAVLINK20'] = '1'
 
 # a constant that isn't defined in Mavlink but is useful for PX4
+PX4_MODE_MANUAL = 1
 PX4_MODE_OFFBOARD = 6
 
 # useful masks for sending commands
@@ -170,7 +171,7 @@ class MavlinkConnection(connection.Connection):
         """helper to wait for a new mavlink message
         
         calls pymavlink's blocking read function to read a next message, 
-        blocking for up to a timeout of 10 ms.
+        blocking for up to a timeout of 1s.
         
         Returns:
             mavlink message of the message that was read, 
@@ -179,7 +180,7 @@ class MavlinkConnection(connection.Connection):
 
         # NOTE: this returns a mavlink message
         # this function should not be called outside of this class!
-        msg = self._master.recv_match(blocking=True,timeout=10)
+        msg = self._master.recv_match(blocking=True,timeout=1)
         if msg is None:
             # no message received
             return None
@@ -250,8 +251,8 @@ class MavlinkConnection(connection.Connection):
         self.send_long_command(mavutil.mavlink.MAV_CMD_DO_SET_MODE, mode, custom_mode, custom_sub_mode)
 
     def release_control(self):
-        mode = mavutil.mavlink.mavlink.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED  # tells system to use PX4 custom commands
-        custom_mode = 1  # 1 == manual control
+        mode = mavutil.mavlink.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED  # tells system to use PX4 custom commands
+        custom_mode = PX4_MODE_MANUAL
         custom_sub_mode = 0  # not used for manual/offboard
         self.send_long_command(mavutil.mavlink.MAV_CMD_DO_SET_MODE, mode, custom_mode, custom_sub_mode)
 
