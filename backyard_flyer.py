@@ -7,7 +7,7 @@ Created on Tue Oct 24 16:17:28 2017
 
 from drone import Drone
 from enum import Enum
-import message_types as mt
+from connection import message_types as mt
 import numpy as np
 
 class States(Enum):
@@ -21,17 +21,21 @@ class States(Enum):
 class BackyardFlyer(Drone):
     
     def __init__(self):
+        super().__init__()
         self.target_position = np.array([0.0,0.0,0.0])
-        self.global_home = np.array([0.0,0.0,0.0])
+        #self.global_home = np.array([0.0,0.0,0.0])  # can't set this here, no setter for this property
         self.all_waypoints = []
         self.in_mission = False
         self.check_state = {}
+
+        # initial start
+        self.state = States.MANUAL
     
     def callbacks(self):
         """ Define your callbacks within here"""
         super().callbacks()
         
-        @self.on_message(mt.MSG_GLOBAL_POSITION)
+        @self.msg_callback(mt.MSG_GLOBAL_POSITION)
         def global_position_callback(msg_name,msg):
             if self.state == States.MANUAL:
                 pass
@@ -53,9 +57,10 @@ class BackyardFlyer(Drone):
             elif self.state == States.DISARMING:
                 pass
         
-        @self.on_message(mt.MSG_STATE)
+        @self.msg_callback(mt.MSG_STATE)
         def state_callback(msg_name,msg):
             if self.state == States.MANUAL:
+                self.arming_transition()
                 pass
             elif self.state == States.ARMING:
                 if msg.armed:
@@ -107,4 +112,8 @@ class BackyardFlyer(Drone):
         
         while self.connected & self.in_mission:
             pass
-        
+
+if __name__ == "__main__":
+    drone = BackyardFlyer()
+
+    drone.start()

@@ -100,7 +100,7 @@ class MavlinkConnection(connection.Connection):
             # if we haven't heard a message in a given amount of time
             # send a termination message
             if current_time - last_msg_time > self._timeout:
-                print("timeout too long!")
+                #print("timeout too long!")
                 # notify listeners that the connection is closing
                 self.notify_message_listeners(mt.MSG_CONNECTION_CLOSED, 0)
 
@@ -157,9 +157,9 @@ class MavlinkConnection(connection.Connection):
                 home = mt.GlobalFrameMessage(timestamp, float(msg.latitude)/1e7, float(msg.longitude)/1e7, float(msg.altitude)/1000)
                 self.notify_message_listeners(mt.MSG_GLOBAL_HOME, home)
 
-            elif msg.get_type() == 'POSITION_TARGET_LOCAL_NED':
+            #elif msg.get_type() == 'POSITION_TARGET_LOCAL_NED':
                 # DEBUG
-                print(msg)
+                #print(msg)
 
             #elif msg.get_type() == 'ATTITUDE':
 

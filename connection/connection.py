@@ -107,14 +107,18 @@ class Connection():
             try:
                 fn(self, name, msg)
             except Exception as e:
-                print("[CONNECTION ERROR] unable to handle message listener")
+                i = 1
+                #print("[CONNECTION ERROR] unable to handle message listener for " + name)
+                #print(e)
 
         # handle the listeners that are registered for all messages
         for fn in self._message_listeners.get('*', []):
             try:
                 fn(self, name, msg)
             except Exception as e:
-                print("[CONNECTION ERROR] unable to handle message listener")
+                i = 1
+                #print("[CONNECTION ERROR] unable to handle * message listener for " + name)
+                #print(e)
 
     @abstractmethod
     def start(self):

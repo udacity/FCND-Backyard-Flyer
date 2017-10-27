@@ -2,8 +2,8 @@
 
 import numpy as np
 import logger
-from mavlink_connection import MavlinkConnection
-import message_types as mt
+from connection import mavlink_connection as mc
+from connection import message_types as mt
 
 
 class Drone:
@@ -12,7 +12,7 @@ class Drone:
         if 'connection' in kwargs.keys():
             self.connection = kwargs['connection']            
         else:
-            self.connection = MavlinkConnection("tcp:127.0.0.1:5760",threaded=True)
+            self.connection = mc.MavlinkConnection("tcp:127.0.0.1:5760",threaded=False)
             
         #Global position in degrees
         self._longitude = 0.0
@@ -172,8 +172,9 @@ class Drone:
     
     def callbacks(self):        
         @self.connection.on_message('*')
-        def on_message_receive(msg_name,msg):
+        def on_message_receive(_, msg_name, msg):
             if msg_name == mt.MSG_CONNECTION_CLOSED:
+                print("terminating connection!")
                 self.disconnect()
             """Sorts incoming messages, updates the drone state variables and runs callbacks"""
             if msg_name in self._update_property.keys():
@@ -335,7 +336,7 @@ class Drone:
     def land(self):
         """Command the vehicle to land at its current position"""
         try:
-            self.connection.land(self.local_position[0],self.local_position[1],self.local_position[2])
+            self.connection.land(self.local_position[0],self.local_position[1])
         except:
             print("land not defined")
     
@@ -374,8 +375,9 @@ class Drone:
         """Run the drone"""
         #self.start_log("Logs","NavLog.txt")
         
-        self.connect()
-                
+        #self.connect()
+        self.connection.start()
+        self._connected = True       
         while self.connected:
             pass
         
