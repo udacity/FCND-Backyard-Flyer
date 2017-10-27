@@ -3,15 +3,11 @@ from connection import message_types as mt
 import time
 
 
-class TestClass:
+class FakeDrone:
 
     def __init__(self):
-        #device = "" #"tcp:127.0.0.1:5760"
-        device = "udp:127.0.0.1:14540"
-        self.mavconn = mavlink_connection.MavlinkConnection(device, threaded=True)
-
-        # connection state
-        self._connection_alive = True
+        device = "tcp:127.0.0.1:5760"
+        self.mavconn = mavlink_connection.MavlinkConnection(device, threaded=False)
 
         # the list of attribute listeners
         self._attribute_listeners = {}
@@ -62,10 +58,16 @@ class TestClass:
         def gps_listener_test(self, name, data):            
             # need to be constantly sending commands for PX4 to accept offboard control
             # send a position
+            print(self.gps_position)
             if self.state[0] is False or self.state[1] is False:
-                self.mavconn.cmd_position(0, 0, 0, 0)
+                #self.mavconn.cmd_position(0, 0, 0, 0)
+                i = 1
             else:
-                self.mavconn.takeoff(0, 0, -3)
+                #self.mavconn.cmd_position(10, 10, 3, 180)
+                #self.mavconn.takeoff(0, 0, -3)
+                #self.mavconn.land(0, 0)
+                #self.mavconn.disarm()
+                self.mavconn.release_control()
                 print("takeoff requested")
 
         @self.on_attribute('state')
@@ -76,7 +78,6 @@ class TestClass:
             elif self.state[0] is False:
                 self.mavconn.arm()
                 print("arming")
-
 
     def on_attribute(self, name):
         """
@@ -89,7 +90,6 @@ class TestClass:
                     self.add_attribute_listener(n, fn)
             else:
                 self.add_attribute_listener(name, fn)
-
 
         return decorator
 
@@ -116,60 +116,20 @@ class TestClass:
             try:
                 fn(self, name, data)
             except Exception as e:
-                print("[ERROR] handling attribute listener")
+                print("[ERROR] handling attribute listener for " + name)
+                print(e)
 
         for fn in self._attribute_listeners.get('*', []):
             try:
                 fn(self, name, data)
             except Exception as e:
-                print("[ERROR] handling attribute listener")
+                print("[ERROR] handling * attribute listener for " + name)
+                print(e)
 
     def start(self):
 
         # start running the connection thread in the background
         self.mavconn.start()
-
-        # start this control loop
-        self.run_loop()
-
-        # TODO: need to make sure that this order works, not sure if need swap the order and start this run loop first
-
-    def run_loop(self):
-        ''' function that effectively is a 5Hz loop '''
-        desired_rate = 1/5.0  # NOTE: PX4 needs at least 2(?) Hz
-
-        takeoff = False
-
-        prev_time = 0
-        while self._connection_alive:
-            # rate limit the loop to a specific rate
-            current_time = time.time()
-            if current_time - prev_time < desired_rate:
-                continue
-
-            # update the time
-            prev_time = current_time
-
-            '''
-            if self.state[1] is False:
-                self.mavconn.take_control()  # request offboard control of the vehicle
-                print("requesting offboard control")
-
-            elif self.state[0] is False:
-                # TODO: probably a better way of sending an arm command
-                # especially since this loop is running 5x faster than the state info is updated
-                self.mavconn.arm()  # this would ideally be done by simply calling self.arm(), just not needed for testing connection class atm
-                print("sending arm command")
-
-            elif not takeoff:
-                self.mavconn.takeoff(0, 0, 0, -3)
-                print("sending takeoff command")
-                takeoff = True
-            '''
-
-
-            # TODO: add sending of messages through the connection
-            
 
     @property
     def gps_position(self):
@@ -179,8 +139,7 @@ class TestClass:
     def state(self):
         return [self._armed, self._offboard]
 
-    
 
-
-test = TestClass()
-test.start()
+if __name__ == "__main__":
+    drone = FakeDrone()
+    drone.start()
