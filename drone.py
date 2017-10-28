@@ -376,10 +376,11 @@ class Drone:
         #self.start_log("Logs","NavLog.txt")
         
         #self.connect()
+        
+        self._connected = True
         self.connection.start()
-        self._connected = True       
-        while self.connected:
-            pass
+        #while self.connected:
+        #    pass
         
         #self.log.close()
         self.tlog.close()

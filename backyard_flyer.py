@@ -9,6 +9,7 @@ from drone import Drone
 from enum import Enum
 from connection import message_types as mt
 import numpy as np
+import frame_utils
 
 class States(Enum):
     MANUAL=0
@@ -28,8 +29,9 @@ class BackyardFlyer(Drone):
         self.in_mission = False
         self.check_state = {}
 
-        # initial start
-        self.state = States.MANUAL
+        # initial state
+        self.flight_state = States.MANUAL
+        self.whatever = States.MANUAL
     
     def callbacks(self):
         """ Define your callbacks within here"""
@@ -37,79 +39,97 @@ class BackyardFlyer(Drone):
         
         @self.msg_callback(mt.MSG_GLOBAL_POSITION)
         def global_position_callback(msg_name,msg):
-            if self.state == States.MANUAL:
+            if self.flight_state == States.MANUAL:
                 pass
-            elif self.state == States.ARMING:
+            elif self.flight_state == States.ARMING:
                 pass
-            elif self.state == States.TAKEOFF:
+            elif self.flight_state == States.TAKEOFF:
                 if msg.altitude > 0.95*self.target_position[2]:
-                    self.all_waypoints = self.calculate_box(self.global_home)
+                    #self.all_waypoints = self.calculate_box()
+                    self.all_waypoints = [[0, 0, 5]]
                     self.waypoint_transition()
-            elif self.state == States.WAYPOINT:
-                if np.linalg.norm(local_target[0:2]-local_position[0:2])<1.0:
-                    if len(self.all_waypoints)>0:
+            elif self.flight_state == States.WAYPOINT:
+                if np.linalg.norm(self.target_position[0:2] - self.local_position[0:2]) < 1.0:
+                    if len(self.all_waypoints) > 0:
                         self.waypoint_transition()
                     else:
                         self.landing_transition()
-            elif self.state == States.LANDING:
-                if msg.global_position[2] - self.global_home[2] < 0.05:
+            elif self.flight_state == States.LANDING:
+                if msg.altitude - self.global_home[2] < 0.05:
                     self.disarming_transition()
-            elif self.state == States.DISARMING:
+            elif self.flight_state == States.DISARMING:
                 pass
         
         @self.msg_callback(mt.MSG_STATE)
         def state_callback(msg_name,msg):
-            if self.state == States.MANUAL:
+            if self.flight_state == States.MANUAL:
                 self.arming_transition()
                 pass
-            elif self.state == States.ARMING:
+            elif self.flight_state == States.ARMING:
                 if msg.armed:
                     self.takeoff_transition()
                     
-            elif self.state == States.TAKEOFF:
+            elif self.flight_state == States.TAKEOFF:
                 pass
-            elif self.state == States.WAYPOINT:
+            elif self.flight_state == States.WAYPOINT:
                 pass
-            elif self.state == States.LANDING:
+            elif self.flight_state == States.LANDING:
                 pass
-            elif self.state == States.DISARMING:
+            elif self.flight_state == States.DISARMING:
                 if ~msg.armed:
                     self.manual_transition()
+    
+    def calculate_box(self):
         
+        global_waypoints = []#np.zeros((4, 3))
+        local_waypoints = np.array([[10.0, 0.0, -3.0],[10.0, 10.0, -3.0],[0.0, 10.0, -3.0],[0.0, 0.0, -3.0]])
+        #for i in range(0,4):
+        #    global_waypoints.extend([frame_utils.local_to_global(local_waypoints[i, :], global_home)])
+        return local_waypoints
+
     def arming_transition(self):
+        print("arming transition")
         self.arm()
-        self.state = States.ARMING
+        self.flight_state = States.ARMING
+        #self.whatever = States.ARMING
         
-    def takeoff_transition(self):       
-        self.global_home = np.copy(self.global_position)
+    def takeoff_transition(self):  
+        print("takeoff transition")     
+        #self.global_home = np.copy(self.global_position)  # can't write to this variable!
         target_altitude = 3.0
         self.target_position[2] = target_altitude
         self.takeoff(target_altitude)
-        self.state = States.TAKEOFF        
+        self.flight_state = States.TAKEOFF        
         
-    def transition_waypoint(self):
+    def waypoint_transition(self):
+        print("waypoint transition")
         self.target_position = self.all_waypoints.pop(0)
         self.cmd_position(self.target_position[0],self.target_position[1],self.target_position[2],0.0)
-        self.state = States.WAYPOINT
+        self.flight_state = States.WAYPOINT
         
     def landing_transition(self):
+        print("landing transition")
         self.land()
-        self.state = States.LANDING
+        self.flight_state = States.LANDING
         
     def disarming_transition(self):
+        print("disarm transition")
         self.disarm()
-        self.state = States.DISARMING
+        self.flight_state = States.DISARMING
         
     def manual_transition(self):
+        print("manual transition")
         self.release_control()
         self.in_mission = False
-        self.state = States.MANUAL   
+        self.flight_state = States.MANUAL   
         
     def start(self):
         
         self.start_log("Logs","NavLog.txt")
-        self.connect()
+        #self.connect()
         
+        self._connected = True
+        self.connection.start()
         while self.connected & self.in_mission:
             pass
 
