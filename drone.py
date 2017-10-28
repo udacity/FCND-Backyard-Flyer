@@ -284,6 +284,7 @@ class Drone:
         
     def disconnect(self):
         self.connection.stop()
+        self.log.close()
         self._connected = False
         
     def arm(self):

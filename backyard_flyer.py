@@ -45,8 +45,7 @@ class BackyardFlyer(Drone):
                 pass
             elif self.flight_state == States.TAKEOFF:
                 if msg.altitude > 0.95*self.target_position[2]:
-                    #self.all_waypoints = self.calculate_box()
-                    self.all_waypoints = [[0, 0, 5]]
+                    self.all_waypoints = self.calculate_box()
                     self.waypoint_transition()
             elif self.flight_state == States.WAYPOINT:
                 if np.linalg.norm(self.target_position[0:2] - self.local_position[0:2]) < 1.0:
@@ -82,7 +81,8 @@ class BackyardFlyer(Drone):
     def calculate_box(self):
         
         global_waypoints = []#np.zeros((4, 3))
-        local_waypoints = np.array([[10.0, 0.0, -3.0],[10.0, 10.0, -3.0],[0.0, 10.0, -3.0],[0.0, 0.0, -3.0]])
+        local_waypoints = [[0, 0, 5]]
+        #local_waypoints = [[10.0, 0.0, -3.0],[10.0, 10.0, -3.0],[0.0, 10.0, -3.0],[0.0, 0.0, -3.0]]
         #for i in range(0,4):
         #    global_waypoints.extend([frame_utils.local_to_global(local_waypoints[i, :], global_home)])
         return local_waypoints
