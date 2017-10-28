@@ -12,7 +12,7 @@ class Drone:
         if 'connection' in kwargs.keys():
             self.connection = kwargs['connection']            
         else:
-            self.connection = mc.MavlinkConnection("tcp:127.0.0.1:5760",threaded=False)
+            self.connection = mc.MavlinkConnection("tcp:127.0.0.1:5760",threaded=True)
             
         #Global position in degrees
         self._longitude = 0.0
@@ -174,7 +174,6 @@ class Drone:
         @self.connection.on_message('*')
         def on_message_receive(_, msg_name, msg):
             if msg_name == mt.MSG_CONNECTION_CLOSED:
-                print("terminating connection!")
                 self.disconnect()
             """Sorts incoming messages, updates the drone state variables and runs callbacks"""
             if msg_name in self._update_property.keys():
@@ -370,6 +369,9 @@ class Drone:
             
     def start_log(self,directory,name):
         self.log = logger.Logger(directory,name)
+
+    def stop_log(self):
+        self.log.close()
         
     
     def start(self):

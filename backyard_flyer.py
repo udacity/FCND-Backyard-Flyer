@@ -26,7 +26,7 @@ class BackyardFlyer(Drone):
         self.target_position = np.array([0.0,0.0,0.0])
         #self.global_home = np.array([0.0,0.0,0.0])  # can't set this here, no setter for this property
         self.all_waypoints = []
-        self.in_mission = False
+        self.in_mission = True
         self.check_state = {}
 
         # initial state
@@ -128,10 +128,12 @@ class BackyardFlyer(Drone):
         self.start_log("Logs","NavLog.txt")
         #self.connect()
         
-        self._connected = True
+        print("starting connection")
         self.connection.start()
-        while self.connected & self.in_mission:
+        while self.in_mission:
             pass
+
+        self.stop_log()
 
 if __name__ == "__main__":
     drone = BackyardFlyer()
