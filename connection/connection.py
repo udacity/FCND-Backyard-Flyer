@@ -27,7 +27,7 @@ class Connection():
     """
     __metaclass__ = ABCMeta
 
-    def __init__(self):
+    def __init__(self, threaded=False):
         """default connection constructor
 
         initializes an empty dictionary of listeners for the possible different
@@ -36,6 +36,7 @@ class Connection():
         element needed for each respective communication protocol.
         """
         self._message_listeners = {}
+        self._threaded = threaded
 
     def on_message(self, name):
         """decorator for being able to add a listener for a specific message type
@@ -126,6 +127,11 @@ class Connection():
                 i = 1
                 #print("[CONNECTION ERROR] unable to handle * message listener for " + name)
                 #print(e)
+
+    @property
+    def threaded(self):
+        """bool: true if being run on a background thread """
+        return self._threaded
 
     @abstractmethod
     def start(self):

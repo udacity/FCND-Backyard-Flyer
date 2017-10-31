@@ -55,15 +55,14 @@ class MavlinkConnection(connection.Connection):
         """
 
         # call the superclass constructor
-        super().__init__()
+        super().__init__(threaded)
 
         # create the connection
         if device is not "":
             self._master = mavutil.mavlink_connection(device)
-        self._threaded = threaded
 
         # set up any of the threading, as needed
-        if threaded:
+        if self._threaded:
             self._read_handle = threading.Thread(target=self.dispatch_loop)
             self._read_handle.daemon = True
         else:
