@@ -151,9 +151,22 @@ class MavlinkConnection(connection.Connection):
                 self.notify_message_listeners(mt.MSG_VELOCITY, vel)
 
             elif msg.get_type() == 'HOME_POSITION':
-                # TODO: decode position information
                 home = mt.GlobalFrameMessage(timestamp, float(msg.latitude)/1e7, float(msg.longitude)/1e7, float(msg.altitude)/1000)
                 self.notify_message_listeners(mt.MSG_GLOBAL_HOME, home)
+
+            elif msg.get_type() == 'SCALED_IMU':
+                # break out the message into its respective messages for here
+                accel = mt.BodyFrameMessage(timestamp, msg.xacc, msg.yacc, msg.zacc) # units are [mg]
+                self.notify_message_listeners(mt.MSG_RAW_ACCELEROMETER, accel)
+
+                gyro = mt.BodyFrameMessage(timestamp, msg.xgyro, msg.ygyro, msg.zgyro) # units are [millirad/sec]
+                self.notify_message_listeners(mt.MSG_RAW_GYROSCOPE, gyro)
+
+            elif msg.get_type() == 'SCALED_PRESSURE':
+                pressure = mt.BodyFrameMessage(timestamp, 0, 0, msg.press_abs) # unit is [hectopascal]
+                self.notify_message_listeners(mt.MSG_BAROMETER, pressure)
+
+            #elif msg.get_type() == 'DISTANCE_SENSOR':
 
             #elif msg.get_type() == 'POSITION_TARGET_LOCAL_NED':
                 # DEBUG
