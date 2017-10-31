@@ -9,6 +9,7 @@ from drone import Drone
 from enum import Enum
 from connection import message_types as mt
 import numpy as np
+import time
 
 
 class States(Enum):
@@ -21,8 +22,8 @@ class States(Enum):
 
 class BackyardFlyer(Drone):
     
-    def __init__(self):
-        super().__init__()
+    def __init__(self,**kwargs):
+        super().__init__(**kwargs)
         self.target_position = np.array([0.0,0.0,0.0])
         #self.global_home = np.array([0.0,0.0,0.0])  # can't set this here, no setter for this property
         self.all_waypoints = []
@@ -37,14 +38,14 @@ class BackyardFlyer(Drone):
         """ Define your callbacks within here"""
         super().callbacks()
         
-        @self.msg_callback(mt.MSG_GLOBAL_POSITION)
-        def global_position_callback(msg_name,msg):
+        @self.msg_callback(mt.MSG_LOCAL_POSITION)
+        def local_position_callback(msg_name,msg):
             if self.flight_state == States.MANUAL:
                 pass
             elif self.flight_state == States.ARMING:
                 pass
             elif self.flight_state == States.TAKEOFF:
-                if msg.altitude > 0.95*self.target_position[2]:
+                if -1.0*msg.down > 0.95*self.target_position[2]:
                     self.all_waypoints = self.calculate_box()
                     self.waypoint_transition()
             elif self.flight_state == States.WAYPOINT:
@@ -54,19 +55,36 @@ class BackyardFlyer(Drone):
                     else:
                         self.landing_transition()
             elif self.flight_state == States.LANDING:
-                if msg.altitude - self.global_home[2] < 0.05:
-                    self.disarming_transition()
+                pass
             elif self.flight_state == States.DISARMING:
                 pass
         
+        @self.msg_callback(mt.MSG_VELOCITY)
+        def velocity_callback(msg_name,msg):
+            if self.flight_state == States.MANUAL:
+                pass
+            elif self.flight_state == States.ARMING:
+                pass
+            elif self.flight_state == States.TAKEOFF:
+                pass
+            elif self.flight_state == States.WAYPOINT:
+                pass
+            elif self.flight_state == States.LANDING:
+                if self.global_position[2] - self.global_home[2] < 0.1:
+                    print(abs(msg.down))
+                    if abs(msg.down)<0.01:
+                        self.disarming_transition()
+            elif self.flight_state == States.DISARMING:
+                pass
+            
+            
         @self.msg_callback(mt.MSG_STATE)
         def state_callback(msg_name,msg):
             if self.in_mission:
                 if self.flight_state == States.MANUAL:
                     self.arming_transition()
-                    pass
                 elif self.flight_state == States.ARMING:
-                    if msg.armed:
+                    if msg.armed==True:
                         self.takeoff_transition()
                         
                 elif self.flight_state == States.TAKEOFF:
@@ -81,8 +99,7 @@ class BackyardFlyer(Drone):
     
     def calculate_box(self):
         print("Setting Home")
-        self.set_home_position(self.global_position[0],self.global_position[1],self.global_position[2]) #set the current location to be the home position
-        local_waypoints = [[0, 0, 5],[10.0,0.0,5.0],[10.0,10.0,5.0],[1]]
+        local_waypoints = [[10.0, 0.0, 3.0],[10.0,10.0,3.0],[0.0,10.0,3.0],[0.0,0.0,3.0]]
         #local_waypoints = [[10.0, 0.0, -3.0],[10.0, 10.0, -3.0],[0.0, 10.0, -3.0],[0.0, 0.0, -3.0]]
         #for i in range(0,4):
         #    global_waypoints.extend([frame_utils.local_to_global(local_waypoints[i, :], global_home)])
@@ -90,7 +107,10 @@ class BackyardFlyer(Drone):
 
     def arming_transition(self):
         print("arming transition")
+        self.take_control()
         self.arm()
+        self.set_home_position(self.global_position[0],self.global_position[1],self.global_position[2]) #set the current location to be the home position
+
         self.flight_state = States.ARMING
         #self.whatever = States.ARMING
         
@@ -121,6 +141,7 @@ class BackyardFlyer(Drone):
     def manual_transition(self):
         print("manual transition")
         self.release_control()
+        self.stop()
         self.in_mission = False
         self.flight_state = States.MANUAL   
         
@@ -130,7 +151,10 @@ class BackyardFlyer(Drone):
         #self.connect()
         
         print("starting connection")
-        self.connection.start()
+        #self.connection.start()
+        
+        super().start()        
+        
         while self.in_mission:
             pass
 
@@ -138,5 +162,5 @@ class BackyardFlyer(Drone):
 
 if __name__ == "__main__":
     drone = BackyardFlyer()
-
+    time.sleep(2)
     drone.start()
