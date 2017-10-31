@@ -85,12 +85,6 @@ class Drone:
         self._latitude = msg.latitude
         self._altitude = msg.altitude
         
-        #Temporary until I figure out how we want to do the logger
-        #data = [msg.time]
-        #data.append(msg.longitude)
-        #data.append(msg.latitude)
-        #data.append(msg.altitude)
-        #self.log.log_data(data)
     
     @property
     def global_home(self):
@@ -106,6 +100,7 @@ class Drone:
         return np.array([self._north,self._east,self._down])
     
     def _update_local_position(self,msg):
+        
         self._north = msg.north
         self._east = msg.east
         self._down  = msg.down
@@ -283,7 +278,7 @@ class Drone:
         
     def disconnect(self):
         self.connection.stop()
-        self.log.close()
+        #self.log.close()
         self._connected = False
         
     def arm(self):
@@ -367,6 +362,13 @@ class Drone:
         except:
             print("cmd_motors not defined")
             
+    def set_home_position(self,longitude, latitude, altitude):
+        """Set the drone's home position to these coordinates"""
+        try:
+            self.connection.set_home_position(latitude, longitude, altitude)
+        except:
+            print("set_home_position not defined")
+            
     def start_log(self,directory,name):
         self.log = logger.Logger(directory,name)
 
@@ -386,6 +388,10 @@ class Drone:
         #    pass
         
         #self.log.close()
+        #self.tlog.close()
+    
+    def stop(self):
+        self.disconnect()
         self.tlog.close()
         
             

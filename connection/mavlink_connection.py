@@ -117,7 +117,6 @@ class MavlinkConnection(connection.Connection):
             # this does indeed get timestamp, should double check format
             # TODO: deice on timestamp format for messages
             timestamp = msg._timestamp
-
             # parse out the message based on the type and call
             # the appropriate callbacks
             if msg.get_type() == 'GLOBAL_POSITION_INT':
@@ -218,7 +217,7 @@ class MavlinkConnection(connection.Connection):
         self._master.mav.command_long_send(
             self._target_system, self._target_component,
             command_type, confirmation,
-            param1, param2, param3, param4, param4, param6, param7)
+            param1, param2, param3, param4, param5, param6, param7)
 
     def start(self):
         # start the main thread
