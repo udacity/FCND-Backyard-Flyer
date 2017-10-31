@@ -6,15 +6,22 @@ communication with a drone.
 
 from abc import ABCMeta, abstractmethod
 
+# set of enums for the different possible connection types
+# NOTE: right now the only implemented type is PX4 mavlink
+CONNECTION_TYPE_MAVLINK_PX4 = 1
+# CONNECTION_TYPE_MAVLINK_APM = 2
+# CONNECTION_TYPE_PARROT = 3
+# CONNECTION_TYPE_DJI = 4
+
 
 class Connection():
     """abstract class for a connection to a drone.
-    
+
     abstract class that outlines the required API functions that need to be 
     implemented for each different possible drone protocol.
     this class can NOT be directly instantiated, but rather needs to be extended
     by each specific protocol that is desired.
-    
+
     Attributes:
         __metaclass__: specifies this class as an abstract class
     """
