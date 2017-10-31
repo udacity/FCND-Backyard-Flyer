@@ -1,8 +1,28 @@
-"""
-Message types
+"""Message Types
 
-Besides the state message, the other types are defined by the frame they are defined in
+custom set of message types to use between a specific connection type and 
+the drone class.
+this enables abstracting away the protocol specific messages so different 
+protocols can be used with the same student facing interface and code.
 
+NOTE: besides the state message, all messages are in the frame they are 
+defined in.
+
+NOTE: to ensure minimal errors due to typos, use the MSG_* constants when 
+registering for specific messages
+
+Attributes:
+    MSG_ALL: flag to be used to register a listener for all messages
+    MSG_STATE: name of the state message
+    MSG_GLOBAL_POSITION: name of the global position message [StateMessage]
+    MSG_LOCAL_POSITION: name of the local position message [LocalFrameMessage]
+    MSG_GLOBAL_HOME: name of the global home message [GlobalFrameMessage]
+    MSG_VELOCITY: name of the velocity message [LocalFrameMessage]
+    MSG_CONNECTION_CLOSED: name of the message sent when the connection is closed (no data)
+    MSG_RAW_GYROSCOPE: name of the raw gyro message [BodyFrameMessage]
+    MSG_RAW_ACCELEROMETER: name of the raw acceleromater message [BodyFrameMessage]
+    MSG_BAROMETER: name of the barometer message [LocalFrameMessage - only down populated]
+    MSG_ATTITUDE: name of attitude message [FrameMessage]
 """
 
 # enum for he names to use for setting callbacks
@@ -15,20 +35,38 @@ MSG_LOCAL_POSITION = 'local_position_msg'
 MSG_GLOBAL_HOME = 'global_home_msg'
 MSG_VELOCITY = 'local_velocity_msg'
 MSG_CONNECTION_CLOSED = 'connection_closed_msg'
+MSG_RAW_GYROSCOPE = 'baro_raw_msg'
+MSG_RAW_ACCELEROMETER = 'accel_raw_msg'
+MSG_BAROMETER = 'baro_msg'
+MSG_ATTITUDE = 'attitude_msg'
 
 
 class Message:
-    """Message superclass, all messages will contain a time"""
+    """Message super class
+    
+    class that all the messages should subclass
+    
+    Attributes:
+        _time: the message time
+    """
     def __init__(self,time):
         self._time = time
     
     @property
     def time(self):
+        """ float: message time in [ms] """
         return self._time
 
 
 class StateMessage(Message):
-    """Vehicle state change messages"""
+    """State information message
+    
+    message to carry vehicle state information
+    
+    Attributes:
+        _armed: whether or not vehicle is armed
+        _guided: whether or not vehicle can be commanded from python
+    """
     def __init__(self,time,armed,guided):
         super().__init__(time)
         self._armed = armed
@@ -36,15 +74,25 @@ class StateMessage(Message):
 
     @property
     def armed(self):
+        """bool: true if the vehicle is armed and ready to fly """
         return self._armed
     
     @property
     def guided(self):
+        """bool: true if the vehicle can be commanded from python """
         return self._guided
     
     
 class GlobalFrameMessage(Message):
-    """Messages defined in the Global (Lat,Lon, Alt) frame"""
+    """Global frame message
+    
+    message to carry information in a global frame
+    
+    Attributes:
+        _latitude: latitude in degrees
+        _longitude: longitude in degrees
+        _altitude: altitude in meters above mean sea level (AMSL)
+    """
     def __init__(self,time,latitude,longitude,altitude):
         super().__init__(time)
         self._longitude = longitude
@@ -53,23 +101,35 @@ class GlobalFrameMessage(Message):
     
     @property
     def longitude(self):
+        """float: longitude in degrees """
         return self._longitude
     
     @property
     def latitude(self):
+        """float: latitude in degrees """
         return self._latitude
     
     @property
     def altitude(self):
+        """float: altitude in meters above sea level """
         return self._altitude
     
     @property
     def global_vector(self):
+        """float array: numpy array of [latitude, longitude, altitude] """
         return np.array([self._longitude,self._latitude,self._altitude])
 
 
 class LocalFrameMessage(Message):
-    """Messages defined in the Local (North,East,Down) frame"""
+    """Local frame message
+    
+    message to carry information in a local (NED) frame
+    
+    Attributes:
+        _north: north position in meters
+        _east: east position in meters
+        _down: down position in meters (above takeoff point, positive down)
+    """
     def __init__(self,time,north,east,down):
         super().__init__(time)
         self._north = north
@@ -78,23 +138,35 @@ class LocalFrameMessage(Message):
        
     @property
     def north(self):
+        """float: north position in meters """
         return self._north
     
     @property
     def east(self):
+        """float: east position in meters """
         return self._east
     
     @property
     def down(self):
+        """float: down position in meters """
         return self._down
     
     @property
     def local_vector(self):
+        """float array: numpy array of NED position, [north, east, down] """
         return np.array([self._north,self._east,self._down])
 
 
 class BodyFrameMessage(Message):
-    """Messages defined in the body frame (x,y,z)"""
+    """Body frame message
+    
+    message to carry information in a body frame
+    
+    Attributes:
+        _x: x value
+        _y: y value
+        _z: z value
+    """
     def __init__(self,time,x,y,z):
         super().__init__(time)
         self._x = x
@@ -103,23 +175,39 @@ class BodyFrameMessage(Message):
         
     @property
     def x(self):
+        """float: x value """
         return self._x
     
     @property
     def y(self):
+        """float: y value """
         return self._y
     
     @property
     def z(self):
+        """float: z value """
         return self._z
     
     @property
     def body_vector(self):
+        """float array: numpy array of the values, [x, y, z] """
         return np.array([self._x,self._y,self._z])
 
 
 class FrameMessage(Message):
-    """Messages defining the rotation between frames (Euler angles or Quaternions)"""
+    """Message representating frame information
+    
+    Messages defining the rotation between frames (Euler angles or Quaternions)
+
+    Attributes:
+        _roll: vehicle roll in degrees
+        _pitch: vehicle pitch in degrees
+        _yaw: vehicle yaw in degrees
+        _q0: 0th element of quaterion
+        _q1: 1th element of quaterion
+        _q2: 2th element of quaterion
+        _q3: 3th element of quaterion
+    """
     def __init__(self,*args):
         if len(*args==4):
             self.init_euler(args[0],args[1],args[2],args[3])
@@ -140,14 +228,14 @@ class FrameMessage(Message):
         sy = math.sin(math.radians(yaw/2.0))
         cy = math.cos(math.radians(yaw/2.0))
         
-        self._qo = cr*cp*cy+sr*sp*sy
+        self._q0 = cr*cp*cy+sr*sp*sy
         self._q1 = sr*cp*cy-cr*sp*sy
         self._q2 = cr*sp*cy+sr*cp*sy
         self._q3 = cr*cp*sy-sr*sp*cy
 
     def init_quaternion(self,time,q0,q1,q2,q3):
         super().__init__(time)
-        self._qo = q0
+        self._q0 = q0
         self._q1 = q1
         self._q2 = q2
         self._q3 = q3
@@ -158,38 +246,47 @@ class FrameMessage(Message):
         
     @property
     def roll(self):
+        """float: roll in degrees """
         return self._roll
     
     @property
     def pitch(self):
-        return self._roll
+        """float: pitch in degrees """
+        return self._pitch
     
     @property
     def yaw(self):
+        """float: yaw in degrees [0, 360) """
         return self._yaw
     
     @property
     def euler_angles(self):
+        """float array: numpy array of the euler angles [roll, pitch, yaw] """
         return np.array([self._roll,self._pitch,self._yaw])
     
     @property
     def quaternions(self):
+        """float array: numpy array of the quaternion vector """
         return np.array([self._q0,self._q1,self._q2,self.q3])
     
     @property
     def q0(self):
+        """float: 0th element of quaternion """
         return self._q0
     
     @property
     def q1(self):
+        """float: 1st element of quaternion """
         return self._q1
     
     @property
     def q2(self):
+        """float: 2nd element of quaternion """
         return self._q2
     
     @property
     def q3(self):
+        """float: 3rd element of quaternion """
         return self._q3
 
     
