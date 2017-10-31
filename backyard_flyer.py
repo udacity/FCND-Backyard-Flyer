@@ -9,7 +9,7 @@ from drone import Drone
 from enum import Enum
 from connection import message_types as mt
 import numpy as np
-import frame_utils
+
 
 class States(Enum):
     MANUAL=0
@@ -61,27 +61,28 @@ class BackyardFlyer(Drone):
         
         @self.msg_callback(mt.MSG_STATE)
         def state_callback(msg_name,msg):
-            if self.flight_state == States.MANUAL:
-                self.arming_transition()
-                pass
-            elif self.flight_state == States.ARMING:
-                if msg.armed:
-                    self.takeoff_transition()
-                    
-            elif self.flight_state == States.TAKEOFF:
-                pass
-            elif self.flight_state == States.WAYPOINT:
-                pass
-            elif self.flight_state == States.LANDING:
-                pass
-            elif self.flight_state == States.DISARMING:
-                if ~msg.armed:
-                    self.manual_transition()
+            if self.in_mission:
+                if self.flight_state == States.MANUAL:
+                    self.arming_transition()
+                    pass
+                elif self.flight_state == States.ARMING:
+                    if msg.armed:
+                        self.takeoff_transition()
+                        
+                elif self.flight_state == States.TAKEOFF:
+                    pass
+                elif self.flight_state == States.WAYPOINT:
+                    pass
+                elif self.flight_state == States.LANDING:
+                    pass
+                elif self.flight_state == States.DISARMING:
+                    if ~msg.armed:
+                        self.manual_transition()
     
     def calculate_box(self):
-        
-        global_waypoints = []#np.zeros((4, 3))
-        local_waypoints = [[0, 0, 5]]
+        print("Setting Home")
+        self.set_home_position(self.global_position[0],self.global_position[1],self.global_position[2]) #set the current location to be the home position
+        local_waypoints = [[0, 0, 5],[10.0,0.0,5.0],[10.0,10.0,5.0],[1]]
         #local_waypoints = [[10.0, 0.0, -3.0],[10.0, 10.0, -3.0],[0.0, 10.0, -3.0],[0.0, 0.0, -3.0]]
         #for i in range(0,4):
         #    global_waypoints.extend([frame_utils.local_to_global(local_waypoints[i, :], global_home)])
