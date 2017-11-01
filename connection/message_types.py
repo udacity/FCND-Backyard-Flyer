@@ -39,6 +39,7 @@ MSG_RAW_GYROSCOPE = 'gyro_raw_msg'
 MSG_RAW_ACCELEROMETER = 'accel_raw_msg'
 MSG_BAROMETER = 'baro_msg'
 MSG_ATTITUDE = 'attitude_msg'
+MSG_DISTANCE_SENSOR = 'distance_sensor_msg'
 
 
 class Message:
@@ -289,4 +290,35 @@ class FrameMessage(Message):
         """float: 3rd element of quaternion """
         return self._q3
 
+
+class DistanceSensorMessage(Message):
+    """Message for distance sensor (e.g. Lidar) information
     
+    the properties of and measurement from a given distance sensor onboard
+    the vehicle.
+
+    Attributes:
+        _min_distance: minimum detectable distance in meters
+        _max_distance: maximum detectable distance in meters
+        _direction: the heading of the sensor for this measurement in degrees
+        _measurement: the distance measured in meters
+        _covariance: the covariance of the measurement
+    """
+
+    def __init__(self, time, min_distance, max_distance, direction, measurement, covariance):
+        super().__init__(time)
+        self._min_distance = min_distance
+        self._max_distance = max_distance
+        self._direction = direction
+        self._measurement = measurement
+        self._covariance = covariance
+
+    @property
+    def measurement(self):
+        """ (float, float, float): tuple containing the measurement information defined as (direction, distance, covariance) """
+        return (self._direction, self._measurement, self._covariance)
+
+    @property
+    def properties(self):
+        """ (float, float): tuple containing the properties of the sensor defined as (min distance, max distance) """
+        return (self._min_distance, self._max_distance)
