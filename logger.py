@@ -37,20 +37,14 @@ class Logger:
             
         self.log.write('\n')
         
-    def log_telemetry_data(self,data):
-        for i in range(len(data)):
-            if type(data[i]) == float:
-                self.log.write('{0:.7f}'.format(data[i]))
-            else:
-                self.log.write(data[i].__str__())
-            if i != len(data)-1:
-                self.log.write(',')
-            
-        self.log.write('\n')
+   
+    #Returns a numpy 2D array of the data
+    def read_log(self,filename):
+        return np.loadtxt(filename,delimiter=',',dtype='Float64')
 
-#Returns a numpy 2D array of the data
-def read_log(filename):
-    return np.loadtxt(filename,delimiter=',',dtype='Float64')
+  
+
+
     
     
         

@@ -158,11 +158,11 @@ Besides being passed to appropriate callbacks, the message data is also saved in
 
 * global_position: latitude (deg), longitude (deg), altitude (m)
 * local_position: north (m), east (m), down (m)
-* local_velocity: north velocity (m/s), east velocity (m/s), vertical velocity (m/s, positive up)
+* local_velocity: north velocity (m/s), east velocity (m/s), vertical velocity (m/s, positive down)
 * armed: True/False
 * guided: True/False
 
-Vehicle attribute can be used if data is required from multi messages. For example:
+Vehicle attribute can be used if information is required from multiple messages. For example:
 
 ~~~
 @self.msg_callback(message_types.MSG_GLOBAL_POSITION)
@@ -177,7 +177,7 @@ Vehicle attribute can be used if data is required from multi messages. For examp
 The following commands are implemented for the Backyard Flyer Project:
 
 * connect(): Starts receiving messages from the drone. Blocks the code until the first message is received
-* disconnect(): Stops receiving messages from the drone.
+* start(): Start receiving messages from the drone. If the connection is not threaded, this will block the code.
 * arm(): Arms the motors of the quad, the rotors will spin slowly. The drone cannot takeoff until armed first
 * disarm(): Disarms the motors of the quad. The quadcopter cannot be disarmed in the air
 * take_control(): set the command mode of the quad to guided
@@ -185,6 +185,7 @@ The following commands are implemented for the Backyard Flyer Project:
 * cmd_position(north, east, down, heading): command the vehicle to travel to the local position (north, east, down). Also commands the quad to maintain a specified heading
 * takeoff(target_altitude): takeoff from the current location to the specified global altitude
 * land(): land in the current position
+* stop(): terminate the connection with the drone and close the telemetry log
 
 These can be called directly from other methods within the drone class:
 
@@ -193,14 +194,9 @@ self.arm() #seconds an arm command to the drone
 ~~~
 
 
-### Message Logging
+### Manual Flight
 
-The telemetry data is automatically logged in "Logs\TLog.txt". Each row contains a comma seperated representation of each message. The first row is the incoming message type. The second row is the time. The rest of the rows contains all the message properties.
-
-
-### Manual Flight Logging
-
-To log GPS data while flying manually, run the drone.py script as shown below:
+To log data while flying manually, run the drone.py script as shown below:
 
 ~~~
 python drone.py
@@ -208,18 +204,51 @@ python drone.py
 
 Run this script after starting the simulator. It connects to the simulator using the Drone class and runs until tcp connection is broken. The connection will timeout if it doesn't receive a heartbeat message once every 10 seconds. The GPS data is automatically logged.
 
-To stop logging data, stop the simulator first and the script will automatically terminate after 10 seconds.
+To stop logging data, stop the simulator first and the script will automatically terminate after approximately 10 seconds.
 
-### Reading TLogs
+Alternatively, the drone can be manually started/stopped from a python/ipython shell:
+
+~~~
+from drone import Drone
+drone = Drone()
+drone.start(threaded=True)
+~~~
+
+If threaded is set to False, the code will blocked and the drone logging can only be stopped by terminating the simulation. If the connection is threaded, the drone can be commanded using the commands described abovethe connection can be stopped (and the log properly closed) using:
+
+~~~
+drone.stop()
+~~~
+
+### Message Logging
+
+The telemetry data is automatically logged in "Logs\TLog.txt". Each row contains a comma seperated representation of each message. The first row is the incoming message type. The second row is the time. The rest of the rows contains all the message properties. The types of messages relevant to this project are:
+
+* state_msg: time (ms), armed (bool), guided (bool)
+* global_position_msg: time (ms), longitude (deg), latitude (deg), altitude (m)
+* global_home_msg: time (ms), longitude (deg), latitude (deg), altitude (m)
+* local_position_msg: time (ms), north (m), east (m), down (m)
+* local_velocity_msg: time (ms), north (m), east (m), down (m) 
+
+
+#### Reading Telemetry Logs
 
 Logs can be read using:
 
 ~~~
-import logger
-t_log = logger.read_tlog(filename)
+t_log = Drone.read_telemetry_data(filename)
 ~~~
 
-TODO: Update this section
+The data is stored as a dictionary of message types. For each message type, there is a list of numpy arrays. For example, to access the longitude and latitude from a global_position_msg:
+
+~~~
+#Time is always the first entry in the list
+time = t_log['global_position_msg'[1][:]
+longitude = t_log['global_position_msg'][1][:]
+latitude = t_log['global_position_msg'][2][:]
+~~~
+
+The data between different messages will not be time synced since it is recorded on
 
 
 ## Autonomous Control State Machine
@@ -277,7 +306,7 @@ def global_to_local(global_position, global_home):
 
 ## Submission Requirements
 
-* Filled in drone.py
+* Filled in backyard_flyer.py
 
 * An x-y (East-North or Long-Lat) plot of the vehicle trajectory while manually flying the box
 
@@ -289,7 +318,7 @@ def global_to_local(global_position, global_home):
 
 TODO: Film a YouTube step through of the project
 
-## Modifications for Ardupilot
+## Modifications for PX4
 
 TODO: This would be nice to have, but isn't a top priority
 

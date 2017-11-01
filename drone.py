@@ -175,7 +175,7 @@ class Drone:
         @self.connection.on_message('*')
         def on_message_receive(_, msg_name, msg):
             if msg_name == mt.MSG_CONNECTION_CLOSED:
-                self.disconnect()
+                self.stop()
             """Sorts incoming messages, updates the drone state variables and runs callbacks"""
             if msg_name in self._update_property.keys():
                 self._update_property[msg_name](msg)
@@ -193,7 +193,36 @@ class Drone:
                 if k != '_time':
                     data.append(msg.__dict__[k])
             self.tlog.log_telemetry_data(data)
-
+    
+    @staticmethod
+    def read_telemetry_data(filename):
+        log_dict = {}
+        tlog = open(filename,'r')
+        lines = tlog.readlines()
+        
+        for line in lines:
+            line_split = line.rstrip('\n').split(',')
+            if line_split[0] in log_dict.keys():
+                entry = log_dict[line_split[0]]            
+                for i in range(1,len(line_split)):
+                    if line_split[i]=='True':
+                        entry[i-1] = np.append(entry[i-1],True)
+                    elif line_split[i]=='False':
+                        entry[i-1] = np.append(entry[i-1],False)
+                    else:
+                        entry[i-1] = np.append(entry[i-1],float(line_split[i]))
+            else:
+                entry = []
+                for i in range(1,len(line_split)):
+                    if line_split[i]=='True':
+                        entry.append(np.array(True))
+                    elif line_split[i]=='False':
+                        entry.append(np.array(False))
+                    else:
+                        entry.append(np.array(float(line_split[i])))
+            
+            log_dict[line_split[0]] = entry
+        return log_dict
     
     def msg_callback(self,name):
         """decorator for being able to add a listener for a specific message type        
@@ -284,7 +313,6 @@ class Drone:
         
     def disconnect(self):
         self.connection.stop()
-        self.tlog.close()
         self._connected = False
         
     def arm(self):
@@ -386,6 +414,7 @@ class Drone:
     def start(self):
         """Starts the connection to the drone"""        
         self.connection.start()
+        self.tlog.close()
 
     
     def stop(self):
