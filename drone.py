@@ -9,11 +9,17 @@ from connection import message_types as mt
 class Drone:
     
     def __init__(self,**kwargs):
+        if 'threaded' in kwargs.keys():
+            thread = kwargs['threaded']
+        else:
+            thread = True
+            
         if 'connection' in kwargs.keys():
             self.connection = kwargs['connection']            
         else:
-            self.connection = mc.MavlinkConnection("tcp:127.0.0.1:5760",threaded=True)
-            
+            self.connection = mc.MavlinkConnection("tcp:127.0.0.1:5760",threaded=thread)
+        
+        
         #Global position in degrees
         self._longitude = 0.0
         self._latitude = 0.0
@@ -278,7 +284,7 @@ class Drone:
         
     def disconnect(self):
         self.connection.stop()
-        #self.log.close()
+        self.tlog.close()
         self._connected = False
         
     def arm(self):
@@ -297,6 +303,7 @@ class Drone:
             
     def take_control(self):
         """Take control of the vehicle """
+        print('Take Control Messsage')
         try:
             self.connection.take_control()
         except:
@@ -377,22 +384,26 @@ class Drone:
         
     
     def start(self):
-        """Run the drone"""
-        #self.start_log("Logs","NavLog.txt")
-        
-        #self.connect()
-        
-        self._connected = True
+        """Starts the connection to the drone"""        
         self.connection.start()
-        #while self.connected:
-        #    pass
-        
-        #self.log.close()
-        #self.tlog.close()
+
     
     def stop(self):
+        """Stops the connection to the drone"""
         self.disconnect()
-        self.tlog.close()
+
         
+    def run(self):
+        """Runs the connection in a while loop,
+        
+            same as "start" for a non-threaded connection
+        """
+        if self.connection.threaded:
+            self.connect()
+            while self.connected:
+                pass
+        else:
+            self.start()
+         
             
 
