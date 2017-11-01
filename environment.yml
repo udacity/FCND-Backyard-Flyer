@@ -1,9 +1,11 @@
-name: flyingcarnd-p0
+name: backyard-flyer
 channels:
     - conda-forge
 dependencies:
     - python==3.6
     - numpy
+    - future
+    - lxml
     - pip:
         - pymavlink
         - utm
