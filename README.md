@@ -1,12 +1,14 @@
 # Flying Car - Backyard Flyer Project
-This project is intended to walk you through the first steps of taking control autonomously flying a drone. You will be using a simulation of a quadcopter developed in Unity. After completing this assigment, you will be familiar communicating with the drone via Mavlink and analyzing flight log files. The python code you write is similar to how the drone would be controlled from a ground station computer or an onboard companion computer. Since communication with the drone is done using Mavlink, you will be able to use your code to control an Arudpilot quadcopter with very little modifications!
+This project is intended to walk you through the first steps of taking control autonomously flying a drone. You will be using a simulation of a quadcopter developed in Unity. After completing this assigment, you will be fimiliar with passing commands and receiving incoming data from the drone. You will also set up a state machine using event-driven programming.
+
+The python code you write is similar to how the drone would be controlled from a ground station computer or an onboard companion computer. Since communication with the drone is done using Mavlink, you will be able to use your code to control an PX4 quadcopter with very little modifications!
 
 ## Task
 The required task is to command the drone to fly a 10m box at a 3m altitude. This box will flown in two ways: manual control and autonomous control.
 
 Manual control of the drone is done using the instructions found with the simulator.
 
-Autonomously controlling will be done using a event-driven state machine. First, you will need to fill in the appropriate state commands which are run on the intiation of each state. Next you'll write the state transition methods. In these methods, you will check need to check an appropriate transition criterion to transition to the next state.
+Autonomously controlling will be done using a event-driven state machine. First, you will need to fill in the appropriate callbacks. The callback will check a transition criteria dependent on the current state. If the transition criteria is met, it will transition to the next state and pass along any required commands tot he drone.
 
 Telemetry data from the drone is logged for review after the flight. You will use the logs to plot the trajectory of the drone and analyze the performance of the task. For more information check out the Flight Log section below...
 
@@ -89,52 +91,164 @@ The next step is to download the simulator build that's appropriate for your ope
 
 You can manually fly the drone using the instructions provided in the simulator's readme.
 
-## Logging
+## Drone API
 
-The telemetry data received from the drone is logged in a csv format into the Logs directory using logger.py. The default log name is navLog.txt. The log name can be changed in drone.py. If a log file already exists with the same name, the previous log will be overwritten.
+A wrapper Drone superclass was written to handle all the communication between Python and the drone simulator. The Drone class contains commands to be passed to the simulator and allows students to register callbacks/listeners on messages coming from the simulator. The goal of this project is to design a subclass from the Drone class implementing a state machine to autonomously fly a box. A subclass is started for you in backyard_flyer.py
 
-The GPS data is set to automatically log whenever the Drone class receives a GPS message. The default format for the logging is:
+### Incoming Message Types
 
+The following incoming message types are implemented for the Backyard Flyer Project:
 
-* Column 1: Longitude (degrees)
-* Column 2: Latitude (degrees)
-* Column 3: Altitude, positive up (meters)
-* Column 4: North Velocity (m/s)
-* Column 5: East Velocity (m/s)
-* Column 6: Down Velocity, positive down (m/s)
-* Column 7: Heading
-* Column 8: self.target_position[0] (user assigned)
-* Column 9: self.target_position[1] (user assigned)
-* Column 10: self.target_position[2] (user assigned)
+* state_msg: Information about whether the vehicle is armed and in guided mode
+* global_position_msg: latitude, longitude, altitude
+* local_position_msg: local north, local east, local down
+* local_velocity_msg: local north velocity, local east velocity, local vertical velocity (positive up)
 
+All message types also contain the time. More information about what the properties of each message can be found in message_types.py. The data for these messages are retrieved using callbacks.
 
-### Manual Flight Logging
+### Registering Callbacks
 
-To log GPS data while flying manually, run the drone.py script as shown below:
+The incoming message data is receiving using callbacks. These methods are only callback when a message of their respective type is received. There are two ways to register a callback:
+
+1. Using the @msg_callback(msg_type) decorator (preferred):
+
+Callbacks registered using decorators need to be defined (and decorated) within the 'callback' method. The callbacks method is called on initialization to register all the defined callbacks
 
 ~~~
-conda drone.py
+def callbacks(self):
+	""" Define your callbacks within here"""
+	super().callbacks()
+	
+    @self.msg_callback(message_types.MSG_GLOBAL_POSITION)
+	def global_position_listener(name, global_position):
+		# do whatever with the global position, which will be of type GlobalPosition
+~~~
+
+
+
+2. Registering the callback for the respective message: 
+
+~~~
+self.add_message_listener(message_types.MSG_GLOBAL_POSITION, self.global_position_listener)
+
+def global_position_listener(self,name,global_position):
+	# do whatever with the global position, which will be of type GlobalPosition
+~~~
+
+A callback for all message types can be registered uisng, '*':
+
+~~~
+@self.msg_callback('*')
+def all_msg_listener(name, msg):
+	# this is a listener for all message types, so break out the msg as defined by the name
+~~~
+
+or
+
+~~~
+self.add_message_listener('*',self.all_msg_listener)
+def all_msg_listener(self,name, msg):
+	# this is a listener for all message types, so break out the msg as defined by the name
+~~~
+        
+
+### Vehicle Attributes
+
+Besides being passed to appropriate callbacks, the message data is also saved into the following attributes of the Drone class:
+
+* global_position: latitude (deg), longitude (deg), altitude (m)
+* local_position: north (m), east (m), down (m)
+* local_velocity: north velocity (m/s), east velocity (m/s), vertical velocity (m/s, positive down)
+* armed: True/False
+* guided: True/False
+
+Vehicle attribute can be used if information is required from multiple messages. For example:
+
+~~~
+@self.msg_callback(message_types.MSG_GLOBAL_POSITION)
+	def global_position_listener(name, global_position):
+		if msg.global_position[2] < 0.05: #Checks the global altitude
+        	if self.local_velocity[2] < 0.05 #Checks the latest drone velocity, since it isn't part of the message
+~~~
+
+
+### Outgoing Commands
+
+The following commands are implemented for the Backyard Flyer Project:
+
+* connect(): Starts receiving messages from the drone. Blocks the code until the first message is received
+* start(): Start receiving messages from the drone. If the connection is not threaded, this will block the code.
+* arm(): Arms the motors of the quad, the rotors will spin slowly. The drone cannot takeoff until armed first
+* disarm(): Disarms the motors of the quad. The quadcopter cannot be disarmed in the air
+* take_control(): set the command mode of the quad to guided
+* release_control(): set the command mode of the quad to manual
+* cmd_position(north, east, down, heading): command the vehicle to travel to the local position (north, east, down). Also commands the quad to maintain a specified heading
+* takeoff(target_altitude): takeoff from the current location to the specified global altitude
+* land(): land in the current position
+* stop(): terminate the connection with the drone and close the telemetry log
+
+These can be called directly from other methods within the drone class:
+
+~~~
+self.arm() #seconds an arm command to the drone
+~~~
+
+
+### Manual Flight
+
+To log data while flying manually, run the drone.py script as shown below:
+
+~~~
+python drone.py
 ~~~
 
 Run this script after starting the simulator. It connects to the simulator using the Drone class and runs until tcp connection is broken. The connection will timeout if it doesn't receive a heartbeat message once every 10 seconds. The GPS data is automatically logged.
 
-To stop logging data, stop the simulator first and the script will automatically terminate after 10 seconds.
+To stop logging data, stop the simulator first and the script will automatically terminate after approximately 10 seconds.
 
-### Reading Logs
+Alternatively, the drone can be manually started/stopped from a python/ipython shell:
+
+~~~
+from drone import Drone
+drone = Drone()
+drone.start(threaded=True)
+~~~
+
+If threaded is set to False, the code will blocked and the drone logging can only be stopped by terminating the simulation. If the connection is threaded, the drone can be commanded using the commands described abovethe connection can be stopped (and the log properly closed) using:
+
+~~~
+drone.stop()
+~~~
+
+### Message Logging
+
+The telemetry data is automatically logged in "Logs\TLog.txt". Each row contains a comma seperated representation of each message. The first row is the incoming message type. The second row is the time. The rest of the rows contains all the message properties. The types of messages relevant to this project are:
+
+* state_msg: time (ms), armed (bool), guided (bool)
+* global_position_msg: time (ms), longitude (deg), latitude (deg), altitude (m)
+* global_home_msg: time (ms), longitude (deg), latitude (deg), altitude (m)
+* local_position_msg: time (ms), north (m), east (m), down (m)
+* local_velocity_msg: time (ms), north (m), east (m), down (m) 
+
+
+#### Reading Telemetry Logs
 
 Logs can be read using:
 
 ~~~
-import logger
-nav_log = logger.read_log(filename)
+t_log = Drone.read_telemetry_data(filename)
 ~~~
 
-Filename should be replaced with the appropriate path to the log. The data from the log is returned as a numpy 2D array. To plot a specific value, you can use the pyplot from from the matplotlib package:
+The data is stored as a dictionary of message types. For each message type, there is a list of numpy arrays. For example, to access the longitude and latitude from a global_position_msg:
 
 ~~~
-from matplotlib import pyplot
-pyplot.plot(nav_log[:,0])
+#Time is always the first entry in the list
+time = t_log['global_position_msg'[1][:]
+longitude = t_log['global_position_msg'][1][:]
+latitude = t_log['global_position_msg'][2][:]
 ~~~
+
+The data between different messages will not be time synced since it is recorded on
 
 
 ## Autonomous Control State Machine
@@ -149,151 +263,32 @@ The six states predefined for the state machine:
 * LANDING: the vehicle is landing on the ground
 * DISARMING: the vehicle is disarming
 
-The state machine methods are seperated into two different types: state commands and state transitions. The state commands are meant to be run only when transitioning to their respective state. The state transitions are checked while the drone is in the respective state every time a new Mavlink message is received.
-        
-
-### State Methods
-The state commands required to be filled in are:
+While the drone is in each state, you will need to check transition criteria with a registered callback. If the transition criteria is met, you will set the next state and pass along any commands to the drone. For example:
 
 ~~~
-
-	#Initiate the ARMING state, put the vehicle in guided mode and arm
-    def arm(self):
-        # TODO: fill out this method
-        return
-    
-    #Initiate the TAKEOFF state, command the vehicle the target altitude (m)
-    def takeoff(self,altitude=3.0):
-        # TODO: fill out this method
-        return
-    
-    #Initiate the WAYPOINT state, command the vehicle to the position specified as Lat, Long, Alt
-    def waypoint(self,target):
-        # TODO: fill out this method
-        return
-    
-    #Initiate the LANDING state, command the vehicle to specified altitude (m)
-    def land(self, altitude=0.0):
-        # TODO: fill out this method
-
-        return
-    
-    #Initiate the DIARMING state, command the vehicle to disarm
-    def disarm(self):
-        # TODO: fill out this method
-        return    
+@self.on_message(mt.MSG_STATE)
+def state_callback(msg_name,msg):
+	if self.state == States.DISARMING:
+    	if ~msg.armed:
+        	self.release_control()
+        	self.in_mission = False
+        	self.state = States.MANUAL
 ~~~
-
-Each of these sets the current state and sends one (or more) Mavlink commands to the drone (a description of Mavlink commands if found below). These methods are meant to be run once and only on transition to the respective state. An example of this when transitioning to the MANUAL state is provided:
-
-~~~
-	def manual(self):
-        self.connection.send_mav_command(mavutil.mavlink.MAV_CMD_NAV_GUIDED_ENABLE, 0, 0,
-                             0, 0, 0, 0, 0)
-        self.state = States.MANUAL
-        return        
-~~~
-
-The method sends a the command 'MAV_CMD_NAV_GUIDED_ENABLE'. The first parameter is set to '0', commanding the drone to disable 'GUIDED' mode. It also set the state to MANUAL, so the appropriate transition method is checked.
-
-#### State Transitions
-The next step is to fill in the appropriate transition method. These method are called every time a new Mavlink message is received from the drone while in its respective state. You will need to fill in the following function:
-
-~~~
-
-	#Save the current position as the home position and transition to the next state when the vehicle is armed and in guided mode
-    def arming_transition(self):
-        # TODO: fill out this method
-        return
-        
-    
-    #Transition to the next state when the target altitude is reach
-    def takeoff_transition(self):
-        # TODO; fill out this method
-        return
-    
-        
-    # Transition to the next state when the target waypoint is reached (within 1m)
-    def waypoint_transition(self):
-        # TODO; fill out this method
-        return                
-       
-
-    # Transition to the next state when the drone is on the ground
-    def landing_transition(self):
-        # TODO; fill out this method
-        return
-    
-    # Transition to the next state when the drone is disarmed
-    def disarming_transition(self):
-        # TODO; fill out this method
-        return
-~~~
-An example of the 'disarming' transition method would be:
-~~~
-
-	# Transition to the next state when the drone is disarmed
-    def disarming_transition(self):
-        if ~self.armed:
-            self.manual(0)
-        return
-~~~
-This function checks to see if the drone is armed. When it detects that the drone is no longer armed, it transitions to the MANUAL state.
-
-#### Mavlink Callbacks
-
-For convenience the Mavlink messages are parsed in two callbacks, 'heartbeat callback' and 'global_position_callback' into different variables of the drone class. The following class variables hold the latest drone information receive from Mavlink:
+This is a callback on the state message. It only checks anything if it's in the DISARMING state. If it detects that the vehicle is successfully disarmed, it sets the mode back to manual and terminates the mission.       
 
 
-* global_position: numpy array [Longitude (deg), Latitude (deg), Altitude (m)]
-* motors_armed: bool
-* global_velocity: numpy array [North Velocity (m/s), East Velocity (m/s), Up Velocity (m/s)]
-* heading: float (Vehicle heading (deg))
-* guided: bool (True: Guided Mode, False: Manual mode)
-* connected: bool
 
 
 ### Running the State Machine
-After filling in the state command and transition methods, you will run the mission:
+After filling in the appropriate callbacks, you will run the mission:
 
 ~~~
-conda drone.py -r
+python backyard_flyer.py
 ~~~
 
 Similar to the manual flight, the GPS data is automatically logged to the specified log file.
 
 
-## Mavlink
-Mavlink provides a common message protocol for communication with your drone. More information about difference message structure can be found [here](http://mavlink.org/messages/common "Mav Msg") 
-
-The Connection class found in connection.py is a wrapper around the pymavlink library in order to make working with mavlink easier for you. Messages are sent, receive, and decoded with the Connection class. An instance of the Connection class is initialized in the Drone class __init__ method. The Connection class works on an different thread than the Drone class, so messages can continue to be sent and receiving even while blocking code.
-
-Commands are sent using the 'send_mav_command' method of the Connection class. The first input is the type of command specified by the enum mavutil.mavlink. The other next 7 inputs are all parameters specific to a command (the last three always correspond to x, y, z if applicable).
-
-Not all autopilots implement all commands in the same way. The simulator accepts a limited set of MAV_CMDs. For a list of MAV_CMDs implemented in the simulator, see below.
-
-### MAV_CMDs
-
-Only the following MAV_CMDs are implemented for communication with the drone with the 'send_mav_command':
-
-* MAV_CMD_COMPONENT_ARM_DISARM (parameter1 = 1 armed, 0 disarmed)
-* MAV_CMD_NAV_GUIDED_ENABLE (parameter1 = 1 enable, 0 disable)
-* MAV_CMD_NAV_LOITER_UNLIM (Command the vehicle to the x, y, z position defined in the global frame (longitude, latitue, altitude)
-* MAV_CMD_NAV_TAKEOFF (Ascend straight up to the altitude specified by the z parameter)
-* MAV_CMD_NAV_LAND (Descend straight down to the altitude specified by the z parameter)
-
-NOTE: Floating point (32 bit) numbers do not have the precision required for a GPS latitude/longitude. Latitude/Longitude are passed via Mavlink using Integer data types. Degrees latitude/longitude are scalled by 10^7 prior to conversion to integer. All other parameters passed using MAV_CMD are passed as floats.
-
-Other MAV_CMDs passed to the simulator will be ignored
-
-### MAV_MSGs
-
-There are two types of Mavlink telemetry messages currently being sent from the simulator:
-
-* HEARTBEAT (Contains status information about the drone)
-* GLOBAL_POSITION_INT (longitude (deg*10^7), latitude (deg*10^7), altitude (mm), rel_alt (mm), north velocity (m/s*100), east velocity (m/s*100, down velocity (m/s*100), heading (deg*100))
-
-NOTE: All fields in the GLOBAL_POSITION_INT are passed as integer types. The longitude, latitude, and altitudes are passed as integers (32 bit), the velocities are passed as shorts (16 bit) and the heading is passed as an unsigned short (16 bit). All values are scaled as shown.
 
 ### Reference Frames
 
@@ -311,7 +306,7 @@ def global_to_local(global_position, global_home):
 
 ## Submission Requirements
 
-* Filled in drone.py
+* Filled in backyard_flyer.py
 
 * An x-y (East-North or Long-Lat) plot of the vehicle trajectory while manually flying the box
 
@@ -323,7 +318,8 @@ def global_to_local(global_position, global_home):
 
 TODO: Film a YouTube step through of the project
 
-## Modifications for Ardupilot
+## Modifications for PX4
 
 TODO: This would be nice to have, but isn't a top priority
+
 
