@@ -4,6 +4,7 @@ import numpy as np
 import logger
 from connection import mavlink_connection as mc
 from connection import message_types as mt
+import time
 
 
 class Drone:
@@ -414,13 +415,13 @@ class Drone:
     def start(self):
         """Starts the connection to the drone"""        
         self.connection.start()
-        self.tlog.close()
+        
 
     
     def stop(self):
-        """Stops the connection to the drone"""
+        """Stops the connection to the drone and closes the log"""
         self.disconnect()
-
+        self.tlog.close()
         
     def run(self):
         """Runs the connection in a while loop,
@@ -434,5 +435,8 @@ class Drone:
         else:
             self.start()
          
-            
 
+if __name__ == "__main__":
+    drone = Drone(threaded=False)
+    time.sleep(2)
+    drone.start()

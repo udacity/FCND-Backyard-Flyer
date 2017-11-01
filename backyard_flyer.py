@@ -71,7 +71,6 @@ class BackyardFlyer(Drone):
                 pass
             elif self.flight_state == States.LANDING:
                 if self.global_position[2] - self.global_home[2] < 0.1:
-                    print(abs(msg.down))
                     if abs(msg.down)<0.01:
                         self.disarming_transition()
             elif self.flight_state == States.DISARMING:
@@ -155,12 +154,13 @@ class BackyardFlyer(Drone):
         
         super().start()        
         
-        while self.in_mission:
-            pass
+        #Only required if they do threaded
+        #while self.in_mission:
+        #    pass
 
         self.stop_log()
 
 if __name__ == "__main__":
-    drone = BackyardFlyer()
+    drone = BackyardFlyer(threaded=False)
     time.sleep(2)
     drone.start()
