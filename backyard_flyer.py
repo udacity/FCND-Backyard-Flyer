@@ -42,8 +42,10 @@ class BackyardFlyer(Drone):
         def local_position_callback(msg_name,msg):
             print(msg.local_vector)
             if self.flight_state == States.MANUAL:
+                self.cmd_position(0,0,0,0.0)
                 pass
             elif self.flight_state == States.ARMING:
+                self.cmd_position(0,0,0,0.0)
                 pass
             elif self.flight_state == States.TAKEOFF:
                 if -1.0*msg.down > 0.95*self.target_position[2]:
@@ -118,7 +120,7 @@ class BackyardFlyer(Drone):
     def takeoff_transition(self):  
         print("takeoff transition")     
         #self.global_home = np.copy(self.global_position)  # can't write to this variable!
-        target_altitude = 3.0
+        target_altitude = -3.0
         self.target_position[2] = target_altitude
         self.takeoff(target_altitude)
         self.flight_state = States.TAKEOFF        

@@ -7,8 +7,8 @@ class TestClass:
 
     def __init__(self):
         #device = "" #"tcp:127.0.0.1:5760"
-        #device = "udp:127.0.0.1:14540"
-        device = "COM11"
+        device = "udp:127.0.0.1:14540"
+        #device = "COM11"
         self.mavconn = mavlink_connection.MavlinkConnection(device, threaded=True)
 
         # connection state
@@ -153,8 +153,8 @@ class TestClass:
             # update the time
             prev_time = current_time
 
-            print("sending position command")
-            self.mavconn.cmd_position(0, 0, 0, 0)
+            #print("sending position command")
+            #self.mavconn.cmd_position(0, 0, 0, 0)
 
             '''
             if self.state[1] is False:

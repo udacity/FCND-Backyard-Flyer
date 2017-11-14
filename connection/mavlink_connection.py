@@ -59,7 +59,8 @@ class MavlinkConnection(connection.Connection):
 
         # create the connection
         if device is not "":
-            self._master = mavutil.mavlink_connection(device, baud=baud)
+            self._master = mavutil.mavlink_connection(device)
+            #self._master = mavutil.mavlink_connection(device, baud=baud)
 
         # set up any of the threading, as needed
         if self._threaded:
@@ -112,8 +113,6 @@ class MavlinkConnection(connection.Connection):
 
             # update the time of the last message
             last_msg_time = current_time
-
-            print(msg.get_type())
 
             # this does indeed get timestamp, should double check format
             # TODO: deice on timestamp format for messages
