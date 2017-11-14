@@ -18,7 +18,7 @@ class Drone:
         if 'connection' in kwargs.keys():
             self.connection = kwargs['connection']            
         else:
-            self.connection = mc.MavlinkConnection("tcp:127.0.0.1:5760",threaded=thread)
+            self.connection = mc.MavlinkConnection("COM11", threaded=thread)
         
         
         #Global position in degrees

@@ -7,7 +7,8 @@ class TestClass:
 
     def __init__(self):
         #device = "" #"tcp:127.0.0.1:5760"
-        device = "udp:127.0.0.1:14540"
+        #device = "udp:127.0.0.1:14540"
+        device = "COM11"
         self.mavconn = mavlink_connection.MavlinkConnection(device, threaded=True)
 
         # connection state
@@ -29,6 +30,7 @@ class TestClass:
         def connection_listener(_, name, msg):
 
             if name == mt.MSG_GLOBAL_POSITION:
+                print(msg.global_vector)
                 self._lat = msg.latitude
                 self._lon = msg.longitude
                 self._alt = msg.altitude
@@ -41,6 +43,7 @@ class TestClass:
                 self.notify_attribute_listeners('test', 42)
 
             elif name == mt.MSG_STATE:
+                print(msg.guided)
                 self._armed = msg.armed
                 self._offboard = msg.guided
                 self.notify_attribute_listeners('state', self.state)
@@ -149,6 +152,9 @@ class TestClass:
 
             # update the time
             prev_time = current_time
+
+            print("sending position command")
+            self.mavconn.cmd_position(0, 0, 0, 0)
 
             '''
             if self.state[1] is False:

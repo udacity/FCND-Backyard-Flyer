@@ -24,6 +24,7 @@ Attributes:
     MSG_BAROMETER: name of the barometer message [LocalFrameMessage - only down populated]
     MSG_ATTITUDE: name of attitude message [FrameMessage]
 """
+import numpy as np
 
 # enum for he names to use for setting callbacks
 # this is to ensure that all the files are using the same names for the messages

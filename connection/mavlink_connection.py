@@ -36,7 +36,7 @@ class MavlinkConnection(connection.Connection):
     tested against that autopilot software.
     """
 
-    def __init__(self, device, threaded=False):
+    def __init__(self, device, threaded=False, baud=921600):
         """constructor for mavlink based drone connection
         
         initialize everything needed for a mavlink based connection to a drone.
@@ -59,7 +59,7 @@ class MavlinkConnection(connection.Connection):
 
         # create the connection
         if device is not "":
-            self._master = mavutil.mavlink_connection(device)
+            self._master = mavutil.mavlink_connection(device, baud=baud)
 
         # set up any of the threading, as needed
         if self._threaded:
@@ -112,6 +112,8 @@ class MavlinkConnection(connection.Connection):
 
             # update the time of the last message
             last_msg_time = current_time
+
+            print(msg.get_type())
 
             # this does indeed get timestamp, should double check format
             # TODO: deice on timestamp format for messages
@@ -173,9 +175,9 @@ class MavlinkConnection(connection.Connection):
                 meas = mt.DistanceSensorMessage(timestamp, float(msg.min_distance)/100, float(msg.max_distance)/100, direction, float(msg.current_distance)/100, float(msg.covariance)/100)
                 self.notify_message_listeners(mt.MSG_DISTANCE_SENSOR, meas)
 
-            #elif msg.get_type() == 'POSITION_TARGET_LOCAL_NED':
+            elif msg.get_type() == 'POSITION_TARGET_LOCAL_NED':
                 # DEBUG
-                #print(msg)
+                print(msg)
 
             #elif msg.get_type() == 'ATTITUDE':
 
