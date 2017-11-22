@@ -1,22 +1,22 @@
 # Flying Car - Backyard Flyer Project
-This project is intended to walk you through the first steps of taking control autonomously flying a drone. You will be using a simulation of a quadcopter developed in Unity. After completing this assigment, you will be fimiliar with passing commands and receiving incoming data from the drone. You will also set up a state machine using event-driven programming.
+This project is intended to walk you through the first steps of autonomously flying a drone. You will be using flying a quadcopter in simulation developed in Unity. After completing this assigment, you will be fimiliar with passing commands and receiving incoming data from the drone. You will also set up a state machine using event-driven programming.
 
-The python code you write is similar to how the drone would be controlled from a ground station computer or an onboard companion computer. Since communication with the drone is done using Mavlink, you will be able to use your code to control an PX4 quadcopter with very little modifications!
+The python code you write is similar to how the drone would be controlled from a ground station computer or an onboard companion computer. Since communication with the drone is done using MAVLink, you will be able to use your code to control an PX4 quadcopter autopilot with very little modification!
 
 ## Task
 The required task is to command the drone to fly a 10m box at a 3m altitude. This box will flown in two ways: manual control and autonomous control.
 
 Manual control of the drone is done using the instructions found with the simulator.
 
-Autonomously controlling will be done using a event-driven state machine. First, you will need to fill in the appropriate callbacks. The callback will check a transition criteria dependent on the current state. If the transition criteria is met, it will transition to the next state and pass along any required commands tot he drone.
+Autonomous control will be done using an event-driven state machine. First, you will need to fill in the appropriate callbacks. Each callback will check against transition criteria dependent on the current state. If the transition criteria are met, it will transition to the next state and pass along any required commands to the drone.
 
 Telemetry data from the drone is logged for review after the flight. You will use the logs to plot the trajectory of the drone and analyze the performance of the task. For more information check out the Flight Log section below...
 
 ## Getting Started
 
-You'll need Python 3. Anaconda now comes standard with Python 3 and several pre-installed packages. In addition to the standard Anaconda packages, this project will also required:
+You'll need Python 3. Anaconda now comes standard with Python 3 and several pre-installed packages. In addition to the standard Anaconda packages, this project will also require the following:
 
-* pymavlink (Python implementation of Mavlink commands)
+* pymavlink (Python implementation of MAVLink commands)
 
 * utm (For conversion between Local and Global coordinate frames)
 
@@ -24,7 +24,7 @@ You'll need Python 3. Anaconda now comes standard with Python 3 and several pre-
 
 * future
 
-The instructions below walk through the instructions for getting a Python environment set up with the appropriate dependencies.
+The instructions below walk through the steps for getting a Python environment set up with the appropriate dependencies.
 
 
 Make sure you have [Anaconda](https://www.anaconda.com/download/) installed, this is required to create the project environment.
@@ -42,7 +42,7 @@ Installing collected packages: future, lxml, pymavlink, utm
 Successfully installed future-0.16.0 lxml-4.0.0 pymavlink-2.2.4 utm-0.4.2
 #
 # To activate this environment, use:
-# > source activate flyingcarnd-p0
+# > source activate backyard-flyer
 #
 # To deactivate an active environment, use:
 # > source deactivate
@@ -57,14 +57,14 @@ $ conda env list
 # Sample output
 # conda environments:
 #
-flyingcarnd-p0           /usr/local/anaconda3/envs/flyingcarnd-p0
+backyard-flyer           /usr/local/anaconda3/envs/backyard-flyer
 root                  *  /usr/local/anaconda3
 ```
 
 In order to use the environment you must activate it. Activating the environment:
 
 ```sh
-source activate flyingcarnd-p0
+source activate backyard-flyer
 ```
 
 Deactivating the environment:
@@ -82,7 +82,7 @@ conda clean -tpy
 Removing the environment:
 
 ```sh
-conda env remove -n flyingcarnd-p0
+conda env remove -n backyard-flyer
 ```
 
 ## Drone Simulator
@@ -93,26 +93,26 @@ You can manually fly the drone using the instructions provided in the simulator'
 
 ## Drone API
 
-A wrapper Drone superclass was written to handle all the communication between Python and the drone simulator. The Drone class contains commands to be passed to the simulator and allows students to register callbacks/listeners on messages coming from the simulator. The goal of this project is to design a subclass from the Drone class implementing a state machine to autonomously fly a box. A subclass is started for you in backyard_flyer.py
+A wrapper `Drone` superclass was written to handle all the communication between Python and the drone simulator. The `Drone` class contains commands to be passed to the simulator and allows students to register callbacks/listeners on messages coming from the simulator. The goal of this project is to design a subclass from the Drone class implementing a state machine to autonomously fly a box. A subclass is started for you in `backyard_flyer.py`
 
 ### Incoming Message Types
 
-The following incoming message types are implemented for the Backyard Flyer Project:
+The following incoming message types are available for the Backyard Flyer Project:
 
 * state_msg: Information about whether the vehicle is armed and in guided mode
 * global_position_msg: latitude, longitude, altitude
 * local_position_msg: local north, local east, local down
 * local_velocity_msg: local north velocity, local east velocity, local vertical velocity (positive up)
 
-All message types also contain the time. More information about what the properties of each message can be found in message_types.py. The data for these messages are retrieved using callbacks.
+All message types also contain the time. More information about the properties of each message can be found in `message_types.py`. The data for these messages are retrieved using callbacks.
 
 ### Registering Callbacks
 
-The incoming message data is receiving using callbacks. These methods are only callback when a message of their respective type is received. There are two ways to register a callback:
+The incoming message data is receiving using callbacks. These methods are only called when a message of their respective type is received. There are two ways to register a callback:
 
-1. Using the @msg_callback(msg_type) decorator (preferred):
+1. Using the `@msg_callback(msg_type)` decorator (preferred):
 
-Callbacks registered using decorators need to be defined (and decorated) within the 'callback' method. The callbacks method is called on initialization to register all the defined callbacks
+Callbacks registered using decorators need to be defined (and decorated) within the 'callback' method. The callbacks method is called on initialization to register all the defined callbacks.
 
 ~~~
 def callbacks(self):
@@ -121,7 +121,7 @@ def callbacks(self):
 	
     @self.msg_callback(message_types.MSG_GLOBAL_POSITION)
 	def global_position_listener(name, global_position):
-		# do whatever with the global position, which will be of type GlobalPosition
+		# do whatever with the global_position, which will be of type GlobalPosition
 ~~~
 
 
@@ -131,8 +131,8 @@ def callbacks(self):
 ~~~
 self.add_message_listener(message_types.MSG_GLOBAL_POSITION, self.global_position_listener)
 
-def global_position_listener(self,name,global_position):
-	# do whatever with the global position, which will be of type GlobalPosition
+def global_position_listener(self, name, global_position):
+	# do whatever you want with the global_position, which will be of type GlobalPosition
 ~~~
 
 A callback for all message types can be registered uisng, '*':
@@ -196,7 +196,7 @@ self.arm() #seconds an arm command to the drone
 
 ### Manual Flight
 
-To log data while flying manually, run the drone.py script as shown below:
+To log data while flying manually, run the `drone.py` script as shown below:
 
 ~~~
 python drone.py
@@ -214,7 +214,7 @@ drone = Drone()
 drone.start(threaded=True)
 ~~~
 
-If threaded is set to False, the code will blocked and the drone logging can only be stopped by terminating the simulation. If the connection is threaded, the drone can be commanded using the commands described abovethe connection can be stopped (and the log properly closed) using:
+If `threaded` is set to `False`, the code will block and the drone logging can only be stopped by terminating the simulation. If the connection is threaded, the drone can be commanded using the commands described above, and the connection can be stopped (and the log properly closed) using:
 
 ~~~
 drone.stop()
@@ -243,12 +243,12 @@ The data is stored as a dictionary of message types. For each message type, ther
 
 ~~~
 #Time is always the first entry in the list
-time = t_log['global_position_msg'[1][:]
+time = t_log['global_position_msg'][0][:]
 longitude = t_log['global_position_msg'][1][:]
 latitude = t_log['global_position_msg'][2][:]
 ~~~
 
-The data between different messages will not be time synced since it is recorded on
+The data between different messages will not be time synced since they are recorded at different times.
 
 
 ## Autonomous Control State Machine
@@ -263,11 +263,11 @@ The six states predefined for the state machine:
 * LANDING: the vehicle is landing on the ground
 * DISARMING: the vehicle is disarming
 
-While the drone is in each state, you will need to check transition criteria with a registered callback. If the transition criteria is met, you will set the next state and pass along any commands to the drone. For example:
+While the drone is in each state, you will need to check transition criteria with a registered callback. If the transition criteria are met, you will set the next state and pass along any commands to the drone. For example:
 
 ~~~
 @self.on_message(mt.MSG_STATE)
-def state_callback(msg_name,msg):
+def state_callback(msg_name, msg):
 	if self.state == States.DISARMING:
     	if ~msg.armed:
         	self.release_control()
@@ -292,7 +292,7 @@ Similar to the manual flight, the GPS data is automatically logged to the specif
 
 ### Reference Frames
 
-Two different reference frames are used. Global positions are defined [longitude, latitude, altitude (pos up)]. Local reference frames are defined [North, East, Down (pos down)] and is relative to a nearby global home provided. Both reference frames are defined in a proper right-handed reference frame . The global reference frame is what is provided by the Drone's GPS, but degrees are difficult to work with on a small scale. Conversion to a local frame allows for easy calculation of m level distances. Two convenience function are provided to convert between the two frames. These functions are wrappers on utm library functions.
+Two different reference frames are used. Global positions are defined [longitude, latitude, altitude (pos up)]. Local reference frames are defined [North, East, Down (pos down)] and is relative to a nearby global home provided. Both reference frames are defined in a proper right-handed reference frame . The global reference frame is what is provided by the Drone's GPS, but degrees are difficult to work with on a small scale. Conversion to a local frame allows for easy calculation of m level distances. Two convenience function are provided to convert between the two frames. These functions are wrappers on `utm` library functions.
 
 ~~~
 #Convert a local position (north,east,down) relative to the home position to a global position (lon,lat,up)
