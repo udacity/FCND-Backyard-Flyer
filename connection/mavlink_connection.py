@@ -3,6 +3,7 @@ from pymavlink import mavutil
 import os
 import threading
 import time
+import Queue
 from . import connection
 from . import message_types as mt
 
@@ -63,12 +64,18 @@ class MavlinkConnection(connection.Connection):
             #self._master = mavutil.mavlink_connection(device, baud=baud)
 
         # set up any of the threading, as needed
+        self._out_msg_queue = Queue()  # a queue for sending data between threads
+        self._out_msg_queue_lock = threading.Lock()
         if self._threaded:
             self._read_handle = threading.Thread(target=self.dispatch_loop)
             self._read_handle.daemon = True
         else:
             self._read_handle = None
         
+        # if doing a PX4 connection, need a write thread (command_loop?)
+        self._write_handle = threading.Thread(target=self.command_loop)  # TODO: pass the queue data, though may not have to...
+        self._write_handle.daemon = True
+
         # management
         self._running = False
         self._target_system = 1
@@ -184,6 +191,44 @@ class MavlinkConnection(connection.Connection):
 
             # TODO: parse out additional message types
 
+
+    def command_loop(self):
+        # write loop
+        
+        # TODO: make this a settable parameter
+        loop_rate = 5  # [Hz]
+
+        # TODO: correctly format this part
+        high_rate_command = 1  # TODO: make this a position control message for 0,0,0
+
+        last_write_time = time.time() 
+        while self._running:
+            current_time = time.time()
+
+            # want to run at a constant rate, so just continue if not the correct wait time
+            if (current_time - last_write_time) < 1.0/loop_rate:
+                continue
+
+            # update the last write time, since about to write here
+            last_write_time = time.time()
+
+            # TODO: check if have a new message in the queue
+            # TODO: need to make sure to do this in a synchronized fashion
+            with self._out_msg_queue_lock:
+                new_msg = True
+            
+            if new_msg:
+                # TODO: update the message that we need to be sending
+                # if this is a one off send, do the one off send, otherwise
+                # update high_rate_command with the command that came out of the queue
+                pass
+            else:
+                # TODO: send the last message that we should basically be constantly sending
+                # if no message yet, should be sending a 0,0,0 position control message
+                # TODO: basially do a send of the current high_rate_command
+                pass
+
+
     def wait_for_message(self):
         """helper to wait for a new mavlink message
         
@@ -246,12 +291,21 @@ class MavlinkConnection(connection.Connection):
             # NOTE: this is a full blocking function here!!
             self.dispatch_loop()
 
+        # need to start the write loop
+        self._write_handle.start()
+
     def stop(self):
         self._running = False
+
+        # join the writ thread
+        self._write_handle.join()
+
+        # join the read thread
         if self._threaded:
             self._read_handle.join()
         else:
             self._master.close()
+
 
     def arm(self):
         # send an arm command through mavlink
