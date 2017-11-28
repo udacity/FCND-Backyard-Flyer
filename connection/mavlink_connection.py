@@ -200,12 +200,12 @@ class MavlinkConnection(connection.Connection):
 
             elif msg.get_type() == 'POSITION_TARGET_LOCAL_NED':
                 # DEBUG
-                print(msg)
-                #pass
+                #print(msg)
+                pass
             
             # DEBUG
             elif msg.get_type() == 'STATUSTEXT':
-                print(msg.text)
+                print("[autopilot message] " + msg.text.decode("utf-8"))
 
             #elif msg.get_type() == 'ATTITUDE':
 
