@@ -42,10 +42,8 @@ class BackyardFlyer(Drone):
         def local_position_callback(msg_name,msg):
             print(msg.local_vector)
             if self.flight_state == States.MANUAL:
-                self.cmd_position(0,0,0,0.0)
                 pass
             elif self.flight_state == States.ARMING:
-                self.cmd_position(0,0,0,0.0)
                 pass
             elif self.flight_state == States.TAKEOFF:
                 if -1.0*msg.down > 0.95*self.target_position[2]:
@@ -82,12 +80,13 @@ class BackyardFlyer(Drone):
             
         @self.msg_callback(mt.MSG_STATE)
         def state_callback(msg_name,msg):
-            print(msg.guided)
+            #print("armed: " + str(msg.armed))
+            #print("guided: " + str(msg.guided))
             if self.in_mission:
                 if self.flight_state == States.MANUAL:
                     self.arming_transition()
                 elif self.flight_state == States.ARMING:
-                    if msg.armed==True:
+                    if msg.armed == True:
                         self.takeoff_transition()
                         
                 elif self.flight_state == States.TAKEOFF:
@@ -102,8 +101,8 @@ class BackyardFlyer(Drone):
     
     def calculate_box(self):
         print("Setting Home")
-        local_waypoints = [[10.0, 0.0, 3.0],[10.0,10.0,3.0],[0.0,10.0,3.0],[0.0,0.0,3.0]]
-        #local_waypoints = [[10.0, 0.0, -3.0],[10.0, 10.0, -3.0],[0.0, 10.0, -3.0],[0.0, 0.0, -3.0]]
+        #local_waypoints = [[10.0, 0.0, 3.0],[10.0,10.0,3.0],[0.0,10.0,3.0],[0.0,0.0,3.0]]
+        local_waypoints = [[10.0, 0.0, -5.0], [10.0, 10.0, -5.0], [0.0, 10.0, -5.0], [0.0, 0.0, -5.0]]
         #for i in range(0,4):
         #    global_waypoints.extend([frame_utils.local_to_global(local_waypoints[i, :], global_home)])
         return local_waypoints
@@ -112,7 +111,7 @@ class BackyardFlyer(Drone):
         print("arming transition")
         self.take_control()
         self.arm()
-        self.set_home_position(self.global_position[0],self.global_position[1],self.global_position[2]) #set the current location to be the home position
+        #self.set_home_position(self.global_position[0],self.global_position[1],self.global_position[2]) #set the current location to be the home position
 
         self.flight_state = States.ARMING
         #self.whatever = States.ARMING
@@ -120,7 +119,7 @@ class BackyardFlyer(Drone):
     def takeoff_transition(self):  
         print("takeoff transition")     
         #self.global_home = np.copy(self.global_position)  # can't write to this variable!
-        target_altitude = -3.0
+        target_altitude = -5.0
         self.target_position[2] = target_altitude
         self.takeoff(target_altitude)
         self.flight_state = States.TAKEOFF        
@@ -159,12 +158,12 @@ class BackyardFlyer(Drone):
         super().start()        
         
         #Only required if they do threaded
-        #while self.in_mission:
-        #    pass
+        while self.in_mission:
+            pass
 
         self.stop_log()
 
 if __name__ == "__main__":
-    drone = BackyardFlyer(threaded=False)
+    drone = BackyardFlyer(threaded=True)
     time.sleep(2)
     drone.start()

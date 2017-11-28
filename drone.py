@@ -19,6 +19,7 @@ class Drone:
             self.connection = kwargs['connection']            
         else:
             self.connection = mc.MavlinkConnection("udp:127.0.0.1:14540", threaded=thread)
+            #self.connection = mc.MavlinkConnection("/dev/ttyUSB0", threaded=thread)
         
         
         #Global position in degrees

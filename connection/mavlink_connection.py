@@ -3,7 +3,7 @@ from pymavlink import mavutil
 import os
 import threading
 import time
-import Queue
+import queue
 from . import connection
 from . import message_types as mt
 
@@ -64,8 +64,7 @@ class MavlinkConnection(connection.Connection):
             #self._master = mavutil.mavlink_connection(device, baud=baud)
 
         # set up any of the threading, as needed
-        self._out_msg_queue = Queue()  # a queue for sending data between threads
-        self._out_msg_queue_lock = threading.Lock()
+        self._out_msg_queue = queue.Queue()  # a queue for sending data between threads
         if self._threaded:
             self._read_handle = threading.Thread(target=self.dispatch_loop)
             self._read_handle.daemon = True
@@ -123,7 +122,7 @@ class MavlinkConnection(connection.Connection):
 
             # this does indeed get timestamp, should double check format
             # TODO: deice on timestamp format for messages
-            timestamp = msg._timestamp
+            timestamp = 0 #msg._timestamp
             # parse out the message based on the type and call
             # the appropriate callbacks
             if msg.get_type() == 'GLOBAL_POSITION_INT':
@@ -183,7 +182,8 @@ class MavlinkConnection(connection.Connection):
 
             elif msg.get_type() == 'POSITION_TARGET_LOCAL_NED':
                 # DEBUG
-                print(msg)
+                #print(msg)
+                pass
 
             #elif msg.get_type() == 'ATTITUDE':
 
@@ -199,7 +199,14 @@ class MavlinkConnection(connection.Connection):
         loop_rate = 5  # [Hz]
 
         # TODO: correctly format this part
-        high_rate_command = 1  # TODO: make this a position control message for 0,0,0
+        mask = (MASK_IGNORE_YAW_RATE | MASK_IGNORE_ACCELERATION | MASK_IGNORE_VELOCITY)
+        high_rate_command = self._master.mav.set_position_target_local_ned_encode(
+            0, self._target_system, self._target_component,
+            mavutil.mavlink.MAV_FRAME_LOCAL_NED, mask,
+            0, 0, 0,
+            0, 0, 0,
+            0, 0, 0,
+            0, 0)
 
         last_write_time = time.time() 
         while self._running:
@@ -213,21 +220,29 @@ class MavlinkConnection(connection.Connection):
             last_write_time = time.time()
 
             # TODO: check if have a new message in the queue
-            # TODO: need to make sure to do this in a synchronized fashion
-            with self._out_msg_queue_lock:
-                new_msg = True
-            
-            if new_msg:
-                # TODO: update the message that we need to be sending
-                # if this is a one off send, do the one off send, otherwise
-                # update high_rate_command with the command that came out of the queue
+            # NOTE: Queue class is synchronized and is thread safe already!
+            msg = None
+            try:
+                msg = self._out_msg_queue.get_nowait()
+            except queue.Empty:
+                # if there is no msgs in the queue, will just continue
                 pass
             else:
-                # TODO: send the last message that we should basically be constantly sending
-                # if no message yet, should be sending a 0,0,0 position control message
-                # TODO: basially do a send of the current high_rate_command
-                pass
+                # either set this is as the high rate command to repeatedly send or send it immediately
+                if msg.get_type() == 'SET_POSITION_TARGET_LOCAL_NED' or msg.get_type() == 'SET_ATTITUDE_TARGET':
+                    high_rate_command = msg
+                else:
+                    self._master.mav.send(msg)
 
+                self._out_msg_queue.task_done()
+
+            # continually want to send the high rate command
+            self._master.mav.send(high_rate_command)
+
+
+    def add_to_queue(self, msg):
+        # NOTE: queue is already thread safe, no need to handle additional locks
+        self._out_msg_queue.put(msg)
 
     def wait_for_message(self):
         """helper to wait for a new mavlink message
@@ -254,9 +269,10 @@ class MavlinkConnection(connection.Connection):
             # send a heartbeat message back, since this needs to be constantly sent so the autopilot knows this exists
             if msg.get_type() == 'HEARTBEAT':
                 # send -> type, autopilot, base mode, custom mode, system status
-                self._master.mav.heartbeat_send(mavutil.mavlink.MAV_TYPE_GCS,
+                outmsg = self._master.mav.heartbeat_encode(mavutil.mavlink.MAV_TYPE_GCS,
                                            mavutil.mavlink.MAV_AUTOPILOT_INVALID,
                                            0, 0, mavutil.mavlink.MAV_STATE_ACTIVE)
+                self.add_to_queue(outmsg)
 
             # pass the message along to be handled by this class
             return msg
@@ -277,34 +293,38 @@ class MavlinkConnection(connection.Connection):
             param7: param7 (z) as defined by the specific command (default: {0})
         """
         confirmation = 0  # may want this as an input.... used for repeat messages
-        self._master.mav.command_long_send(
+        msg = self._master.mav.command_long_encode(
             self._target_system, self._target_component,
             command_type, confirmation,
             param1, param2, param3, param4, param5, param6, param7)
+        self.add_to_queue(msg)
 
     def start(self):
         # start the main thread
         self._running = True
+
+        # need to start the write loop
+        self._write_handle.start()
+
+        # start the dispatch loop, either threaded or not
         if self._threaded:
             self._read_handle.start()
         else:
             # NOTE: this is a full blocking function here!!
             self.dispatch_loop()
 
-        # need to start the write loop
-        self._write_handle.start()
-
     def stop(self):
         self._running = False
 
-        # join the writ thread
+        # join the write thread   
         self._write_handle.join()
 
-        # join the read thread
+        # join the read thread if needed
         if self._threaded:
             self._read_handle.join()
-        else:
-            self._master.close()
+
+        print("closing the connection")
+        self._master.close()
 
 
     def arm(self):
@@ -332,28 +352,31 @@ class MavlinkConnection(connection.Connection):
         # TODO: convert the attitude to a quaternion
         q = [0, 0, 0, 0]
         mask = 0b00000111
-        self._master.mav.set_attitude_target_send(
+        msg = self._master.mav.set_attitude_target_encode(
             time_boot_ms, self._target_system, self._target_component, mask,
             q, 0, 0, 0, collective)
+        self.add_to_queue(msg)
 
     def cmd_attitude_rate(self, yaw_rate, pitch_rate, roll_rate, collective):
         time_boot_ms = 0  # this does not need to be set to a specific time
         q = [0, 0, 0, 0]
         mask = 0b10000000
-        self._master.mav.set_attitude_target_send(
+        msg = self._master.mav.set_attitude_target_encode(
             time_boot_ms, target_system, target_component, mask,
-            q, roll_rate, pitch_rate, yaw_rate, collective)        
+            q, roll_rate, pitch_rate, yaw_rate, collective)
+        self.add_to_queue(msg)    
 
     def cmd_velocity(self, vn, ve, vd, heading):
         time_boot_ms = 0  # this does not need to be set to a specific time
         mask = (MASK_IGNORE_YAW_RATE | MASK_IGNORE_ACCELERATION | MASK_IGNORE_POSITION)
-        self._master.mav.set_position_target_local_ned_send(
+        msg = self._master.mav.set_position_target_local_ned_encode(
             time_boot_ms, self._target_system, self._target_component,
             mavutil.mavlink.MAV_FRAME_LOCAL_NED, mask,
             0, 0, 0,
             vn, ve, vd,
             0, 0, 0,
             heading, 0)
+        self.add_to_queue(msg)
 
     def cmd_motors(self, motor1, motor2, motor3, motor4):
         # TODO: implement this
@@ -362,13 +385,14 @@ class MavlinkConnection(connection.Connection):
     def cmd_position(self, n, e, d, heading):
         time_boot_ms = 0  # this does not need to be set to a specific time
         mask = (MASK_IGNORE_YAW_RATE | MASK_IGNORE_ACCELERATION | MASK_IGNORE_VELOCITY)
-        self._master.mav.set_position_target_local_ned_send(
+        msg = self._master.mav.set_position_target_local_ned_encode(
             time_boot_ms, self._target_system, self._target_component,
             mavutil.mavlink.MAV_FRAME_LOCAL_NED, mask,
             n, e, d,
             0, 0, 0,
             0, 0, 0,
             heading, 0)
+        self.add_to_queue(msg)
 
     def takeoff(self, n, e, d):
         # for mavlink to PX4 need to specify the NED location for landing
@@ -377,13 +401,14 @@ class MavlinkConnection(connection.Connection):
         time_boot_ms = 0  # this does not need to be set to a specific time
         mask = MASK_IS_TAKEOFF
         mask |= (MASK_IGNORE_YAW_RATE | MASK_IGNORE_YAW | MASK_IGNORE_ACCELERATION | MASK_IGNORE_VELOCITY)
-        self._master.mav.set_position_target_local_ned_send(
+        msg = self._master.mav.set_position_target_local_ned_encode(
             time_boot_ms, self._target_system, self._target_component,
             mavutil.mavlink.MAV_FRAME_LOCAL_NED, mask,
             n, e, d,
             0, 0, 0,
             0, 0, 0,
             0, 0)
+        self.add_to_queue(msg)
 
     def land(self, n, e):
         # for mavlink to PX4 need to specify the NED location for landing
@@ -393,13 +418,14 @@ class MavlinkConnection(connection.Connection):
         time_boot_ms = 0  # this does not need to be set to a specific time
         mask = MASK_IS_LAND
         mask |= (MASK_IGNORE_YAW_RATE | MASK_IGNORE_YAW | MASK_IGNORE_ACCELERATION | MASK_IGNORE_VELOCITY)
-        self._master.mav.set_position_target_local_ned_send(
+        msg = self._master.mav.set_position_target_local_ned_encode(
             time_boot_ms, self._target_system, self._target_component,
             mavutil.mavlink.MAV_FRAME_LOCAL_NED, mask,
             n, e, d,
             0, 0, 0,
             0, 0, 0,
             0, 0)
+        self.add_to_queue(msg)
 
     def set_home_position(self, lat, lon, alt):
         self.send_long_command(mavutil.mavlink.MAV_CMD_DO_SET_HOME, 0, 0, 0, 0, lat, lon, alt)
