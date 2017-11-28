@@ -60,7 +60,7 @@ class MavlinkConnection(connection.Connection):
 
         # create the connection
         if device is not "":
-            self._master = mavutil.mavlink_connection(device)
+            self._master = mavutil.mavlink_connection(device, baud=baud)
             #self._master = mavutil.mavlink_connection(device, baud=baud)
 
         # set up any of the threading, as needed
@@ -191,32 +191,35 @@ class MavlinkConnection(connection.Connection):
 
             # TODO: parse out additional message types
 
-
     def command_loop(self):
-        # write loop
+        """main loop for sending commands
+        
+        Loop that is run a separate thread to be able to send messages to the 
+        target drone.  Uses the message queue `self._out_msg_queue` as the 
+        queue of messages to run.
+
+        Currently runs at 5Hz.
+        """
         
         # TODO: make this a settable parameter
         loop_rate = 5  # [Hz]
 
-        # TODO: correctly format this part
+        # default to sending a position command to (0,0,0)
+        # this needs to be sending commands at a rate of at lease 2Hz in order
+        # for PX4 to allow a switch into offboard control.
         mask = (MASK_IGNORE_YAW_RATE | MASK_IGNORE_ACCELERATION | MASK_IGNORE_VELOCITY)
         high_rate_command = self._master.mav.set_position_target_local_ned_encode(
             0, self._target_system, self._target_component,
             mavutil.mavlink.MAV_FRAME_LOCAL_NED, mask,
-            0, 0, 0,
-            0, 0, 0,
-            0, 0, 0,
-            0, 0)
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 
         last_write_time = time.time() 
         while self._running:
-            current_time = time.time()
 
-            # want to run at a constant rate, so just continue if not the correct wait time
+            # rate limit the loop
+            current_time = time.time()
             if (current_time - last_write_time) < 1.0/loop_rate:
                 continue
-
-            # update the last write time, since about to write here
             last_write_time = time.time()
 
             # empty out the queue of pending messages
@@ -242,6 +245,15 @@ class MavlinkConnection(connection.Connection):
 
 
     def add_to_queue(self, msg):
+        """add a message to the queue to be send
+        
+        add a MAVLinkMessage to the command queue to be handled by the command
+        loop (running in the write thread)
+        
+        Args:
+            msg: a MAVLinkMessage to be sent to the drone
+        """
+
         # NOTE: queue is already thread safe, no need to handle additional locks
         self._out_msg_queue.put(msg)
 
@@ -278,6 +290,31 @@ class MavlinkConnection(connection.Connection):
             # pass the message along to be handled by this class
             return msg
 
+    def start(self):
+        # start the main thread
+        self._running = True
+
+        # start the command loop
+        self._write_handle.start()
+
+        # start the dispatch loop, either threaded or not
+        if self._threaded:
+            self._read_handle.start()
+        else:
+            # NOTE: this is a full blocking function here!!
+            self.dispatch_loop()
+
+    def stop(self):
+        # stop the dispatch and command while loops
+        self._running = False
+
+        # NOTE: no need to call join on the threads
+        # as both threads are daemon threads
+
+        # close the connection
+        print("closing the connection")
+        self._master.close()
+
     def send_long_command(self, command_type, param1, param2=0, param3=0, param4=0, param5=0, param6=0, param7=0):
         """helper function to send a COMMAND_LONG message
         
@@ -299,31 +336,6 @@ class MavlinkConnection(connection.Connection):
             command_type, confirmation,
             param1, param2, param3, param4, param5, param6, param7)
         self.add_to_queue(msg)
-
-    def start(self):
-        # start the main thread
-        self._running = True
-
-        # need to start the write loop
-        self._write_handle.start()
-
-        # start the dispatch loop, either threaded or not
-        if self._threaded:
-            self._read_handle.start()
-        else:
-            # NOTE: this is a full blocking function here!!
-            self.dispatch_loop()
-
-    def stop(self):
-        # set running to false -> this will stop the dispatch and command while loops
-        self._running = False
-
-        # NOTE: no need to call join on the threads as both threads are daemon threads
-
-        # close the connection
-        print("closing the connection")
-        self._master.close()
-
 
     def arm(self):
         # send an arm command through mavlink
