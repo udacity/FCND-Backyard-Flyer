@@ -219,22 +219,23 @@ class MavlinkConnection(connection.Connection):
             # update the last write time, since about to write here
             last_write_time = time.time()
 
-            # TODO: check if have a new message in the queue
+            # empty out the queue of pending messages
             # NOTE: Queue class is synchronized and is thread safe already!
             msg = None
-            try:
-                msg = self._out_msg_queue.get_nowait()
-            except queue.Empty:
-                # if there is no msgs in the queue, will just continue
-                pass
-            else:
-                # either set this is as the high rate command to repeatedly send or send it immediately
-                if msg.get_type() == 'SET_POSITION_TARGET_LOCAL_NED' or msg.get_type() == 'SET_ATTITUDE_TARGET':
-                    high_rate_command = msg
+            while not self._out_msg_queue.empty():
+                try:
+                    msg = self._out_msg_queue.get_nowait()
+                except queue.Empty:
+                    # if there is no msgs in the queue, will just continue
+                    pass
                 else:
-                    self._master.mav.send(msg)
+                    # either set this is as the high rate command to repeatedly send or send it immediately
+                    if msg.get_type() == 'SET_POSITION_TARGET_LOCAL_NED' or msg.get_type() == 'SET_ATTITUDE_TARGET':
+                        high_rate_command = msg
+                    else:
+                        self._master.mav.send(msg)
 
-                self._out_msg_queue.task_done()
+                    self._out_msg_queue.task_done()
 
             # continually want to send the high rate command
             self._master.mav.send(high_rate_command)
