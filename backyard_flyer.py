@@ -70,20 +70,23 @@ class BackyardFlyer(Drone):
             elif self.flight_state == States.WAYPOINT:
                 pass
             elif self.flight_state == States.LANDING:
-                if self.global_position[2] - self.global_home[2] < 0.1:
-                    if abs(msg.down)<0.01:
-                        self.disarming_transition()
+                pass
+                #if self.global_position[2] - self.global_home[2] < 0.1:
+                #    if abs(msg.down)<0.01:
+                #        self.disarming_transition()
             elif self.flight_state == States.DISARMING:
                 pass
             
             
         @self.msg_callback(mt.MSG_STATE)
         def state_callback(msg_name,msg):
+            print("heartbeat data: ({}, {})".format(msg.armed, msg.guided))
             if self.in_mission:
                 if self.flight_state == States.MANUAL:
-                    self.arming_transition()
+                    pass
                 elif self.flight_state == States.ARMING:
-                    if msg.armed == True:
+                    if msg.armed == True and msg.guided == True:
+                        print("have control and armed")
                         self.takeoff_transition()
                         
                 elif self.flight_state == States.TAKEOFF:

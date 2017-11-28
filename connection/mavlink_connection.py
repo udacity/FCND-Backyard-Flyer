@@ -37,7 +37,7 @@ class MavlinkConnection(connection.Connection):
     tested against that autopilot software.
     """
 
-    def __init__(self, device, threaded=False, baud=921600, PX4=False):
+    def __init__(self, device, threaded=False, PX4=False):
         """constructor for mavlink based drone connection
         
         initialize everything needed for a mavlink based connection to a drone.
@@ -52,8 +52,6 @@ class MavlinkConnection(connection.Connection):
                     (see mavutil mavlink connection for valid options)
             threaded: whether or not to run the message read loop on a
                       separate thread (default: {False})
-            baud: the baud rate to run a serial connection at.  For a companion
-                  computer, the typical rate is 921600 (default: {921600})
             PX4: flag for whether or not connected to a PX4 autopilot.
                  Determines the behavior of the command loop (write thread)
                  (default: {False})
@@ -65,7 +63,7 @@ class MavlinkConnection(connection.Connection):
 
         # create the connection
         if device is not "":
-            self._master = mavutil.mavlink_connection(device, baud=baud)
+            self._master = mavutil.mavlink_connection(device)
 
         # set up any of the threading, as needed
         self._out_msg_queue = queue.Queue()  # a queue for sending data between threads
@@ -129,8 +127,8 @@ class MavlinkConnection(connection.Connection):
             last_msg_time = current_time
 
             # this does indeed get timestamp, should double check format
-            # TODO: deice on timestamp format for messages
-            timestamp = 0 #msg._timestamp
+            # TODO: decide on timestamp format for messages
+            timestamp = msg._timestamp
             # parse out the message based on the type and call
             # the appropriate callbacks
             if msg.get_type() == 'GLOBAL_POSITION_INT':
@@ -202,8 +200,12 @@ class MavlinkConnection(connection.Connection):
 
             elif msg.get_type() == 'POSITION_TARGET_LOCAL_NED':
                 # DEBUG
-                #print(msg)
-                pass
+                print(msg)
+                #pass
+            
+            # DEBUG
+            elif msg.get_type() == 'STATUSTEXT':
+                print(msg.text)
 
             #elif msg.get_type() == 'ATTITUDE':
 
