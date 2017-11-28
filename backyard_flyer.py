@@ -8,6 +8,7 @@ Created on Tue Oct 24 16:17:28 2017
 from drone import Drone
 from enum import Enum
 from connection import message_types as mt
+from connection import mavlink_connection as mc
 import numpy as np
 import time
 
@@ -168,6 +169,18 @@ class BackyardFlyer(Drone):
         self.stop_log()
 
 if __name__ == "__main__":
-    drone = BackyardFlyer(threaded=True)
+    # create the necessary connection first
+    
+    # using a HITL simulator
+    connection = mc.MavlinkConnection("udp:127.0.0.1:14540", threaded=True, PX4=True)
+    
+    # using a companion computer plugged into Pixhawk UART port
+    #connection = mc.MavlinkConnection("/dev/ttyUSB0,921600", threaded=True, PX4=True)
+    
+    # using a wireless connection using a 3DR radio (or equivalent)
+    #connection = mc.MavlinkConnection("/dev/ttyUSB0,57600", threaded=True, PX4=True)
+    
+    # same code as before
+    drone = BackyardFlyer(connection=connection)
     time.sleep(2)
     drone.start()
