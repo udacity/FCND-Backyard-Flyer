@@ -37,7 +37,7 @@ class MavlinkConnection(connection.Connection):
     tested against that autopilot software.
     """
 
-    def __init__(self, device, threaded=False, baud=921600):
+    def __init__(self, device, threaded=False, baud=921600, PX4=False):
         """constructor for mavlink based drone connection
         
         initialize everything needed for a mavlink based connection to a drone.
@@ -52,6 +52,11 @@ class MavlinkConnection(connection.Connection):
                     (see mavutil mavlink connection for valid options)
             threaded: whether or not to run the message read loop on a
                       separate thread (default: {False})
+            baud: the baud rate to run a serial connection at.  For a companion
+                  computer, the typical rate is 921600 (default: {921600})
+            PX4: flag for whether or not connected to a PX4 autopilot.
+                 Determines the behavior of the command loop (write thread)
+                 (default: {False})
 
         """
 
@@ -61,7 +66,6 @@ class MavlinkConnection(connection.Connection):
         # create the connection
         if device is not "":
             self._master = mavutil.mavlink_connection(device, baud=baud)
-            #self._master = mavutil.mavlink_connection(device, baud=baud)
 
         # set up any of the threading, as needed
         self._out_msg_queue = queue.Queue()  # a queue for sending data between threads
@@ -71,14 +75,18 @@ class MavlinkConnection(connection.Connection):
         else:
             self._read_handle = None
         
-        # if doing a PX4 connection, need a write thread (command_loop?)
-        self._write_handle = threading.Thread(target=self.command_loop)  # TODO: pass the queue data, though may not have to...
+        # need a command loop to be able to continually send certain commands
+        # at the desired rate when working with PX4
+        self._write_handle = threading.Thread(target=self.command_loop)
         self._write_handle.daemon = True
 
         # management
         self._running = False
         self._target_system = 1
         self._target_component = 1
+
+        # PX4 management
+        self._using_px4 = PX4
 
         self._timeout = 5 # seconds to wait of no messages before termination
 
@@ -127,20 +135,25 @@ class MavlinkConnection(connection.Connection):
             # the appropriate callbacks
             if msg.get_type() == 'GLOBAL_POSITION_INT':
                 # parse out the gps position and trigger that callback
-                gps = mt.GlobalFrameMessage(timestamp, float(msg.lat)/1e7, float(msg.lon)/1e7, float(msg.alt)/1000)
+                gps = mt.GlobalFrameMessage(timestamp, float(msg.lat)/1e7, 
+                                            float(msg.lon)/1e7,
+                                            float(msg.alt)/1000)
                 self.notify_message_listeners(mt.MSG_GLOBAL_POSITION, gps)
 
                 # parse out the velocity and trigger that callback
-                vel = mt.LocalFrameMessage(timestamp, float(msg.vx)/100, float(msg.vy)/100, float(msg.vx)/100)
+                vel = mt.LocalFrameMessage(timestamp, float(msg.vx)/100,
+                                           float(msg.vy)/100, float(msg.vx)/100)
                 self.notify_message_listeners(mt.MSG_VELOCITY, vel)
 
             elif msg.get_type() == 'HEARTBEAT':
                 motors_armed = (msg.base_mode & mavutil.mavlink.MAV_MODE_FLAG_SAFETY_ARMED) != 0
 
-                # TODO: determine if want to broadcast all current mode types, not just boolean on manual
+                # TODO: determine if want to broadcast all current mode types
+                # not just boolean on manual
                 guided_mode = False
 
-                # extract whether or not we are in offboard mode for PX4 (the main mode)
+                # extract whether or not we are in offboard mode for PX4
+                # (the main mode)
                 main_mode = (msg.custom_mode & 0x000F0000) >> 16
                 if main_mode == PX4_MODE_OFFBOARD:
                     guided_mode = True
@@ -158,7 +171,9 @@ class MavlinkConnection(connection.Connection):
                 self.notify_message_listeners(mt.MSG_VELOCITY, vel)
 
             elif msg.get_type() == 'HOME_POSITION':
-                home = mt.GlobalFrameMessage(timestamp, float(msg.latitude)/1e7, float(msg.longitude)/1e7, float(msg.altitude)/1000)
+                home = mt.GlobalFrameMessage(timestamp, float(msg.latitude)/1e7,
+                                             float(msg.longitude)/1e7,
+                                             float(msg.altitude)/1000)
                 self.notify_message_listeners(mt.MSG_GLOBAL_HOME, home)
 
             elif msg.get_type() == 'SCALED_IMU':
@@ -177,7 +192,12 @@ class MavlinkConnection(connection.Connection):
                 # TODO parse orientation
                 direction = 0
                 orientation = msg.orientation
-                meas = mt.DistanceSensorMessage(timestamp, float(msg.min_distance)/100, float(msg.max_distance)/100, direction, float(msg.current_distance)/100, float(msg.covariance)/100)
+                meas = mt.DistanceSensorMessage(timestamp,
+                                                float(msg.min_distance)/100,
+                                                float(msg.max_distance)/100,
+                                                direction,
+                                                float(msg.current_distance)/100,
+                                                float(msg.covariance)/100)
                 self.notify_message_listeners(mt.MSG_DISTANCE_SENSOR, meas)
 
             elif msg.get_type() == 'POSITION_TARGET_LOCAL_NED':
@@ -232,30 +252,42 @@ class MavlinkConnection(connection.Connection):
                     # if there is no msgs in the queue, will just continue
                     pass
                 else:
-                    # either set this is as the high rate command to repeatedly send or send it immediately
-                    if msg.get_type() == 'SET_POSITION_TARGET_LOCAL_NED' or msg.get_type() == 'SET_ATTITUDE_TARGET':
+                    # either set this is as the high rate command
+                    # to repeatedly send or send it immediately
+                    if (msg.get_type() == 'SET_POSITION_TARGET_LOCAL_NED' or
+                        msg.get_type() == 'SET_ATTITUDE_TARGET'):
                         high_rate_command = msg
                     else:
                         self._master.mav.send(msg)
-
                     self._out_msg_queue.task_done()
 
             # continually want to send the high rate command
             self._master.mav.send(high_rate_command)
 
 
-    def add_to_queue(self, msg):
-        """add a message to the queue to be send
+    def send_message(self, msg):
+        """send a given mavlink message to the drone
         
-        add a MAVLinkMessage to the command queue to be handled by the command
-        loop (running in the write thread)
+        If connected with a PX4 autopilot, add the MAVLinkMessage to the
+        command queue to be handled by the command loop (running in the write
+        thread).  Otherwise immediately send the message.
         
         Args:
             msg: a MAVLinkMessage to be sent to the drone
         """
 
-        # NOTE: queue is already thread safe, no need to handle additional locks
-        self._out_msg_queue.put(msg)
+        # if we are using PX4, means we are also using out command loop
+        # in a separate thread and therefore need to send the data to that 
+        # thread using the queue
+        # 
+        # if we are not using PX4, then just immediately send the message
+        if self._using_px4:
+            # NOTE: queue is already thread safe
+            # no need to handle additional locks
+            self._out_msg_queue.put(msg)
+        else:
+            self._master.mav.send(msg)
+
 
     def wait_for_message(self):
         """helper to wait for a new mavlink message
@@ -285,7 +317,7 @@ class MavlinkConnection(connection.Connection):
                 outmsg = self._master.mav.heartbeat_encode(mavutil.mavlink.MAV_TYPE_GCS,
                                            mavutil.mavlink.MAV_AUTOPILOT_INVALID,
                                            0, 0, mavutil.mavlink.MAV_STATE_ACTIVE)
-                self.add_to_queue(outmsg)
+                self.send_message(outmsg)
 
             # pass the message along to be handled by this class
             return msg
@@ -295,7 +327,10 @@ class MavlinkConnection(connection.Connection):
         self._running = True
 
         # start the command loop
-        self._write_handle.start()
+        # this is only needed when working with PX4 and we need to enforce
+        # a certain rate of messages being sent
+        if self._using_px4:
+            self._write_handle.start()
 
         # start the dispatch loop, either threaded or not
         if self._threaded:
@@ -335,7 +370,7 @@ class MavlinkConnection(connection.Connection):
             self._target_system, self._target_component,
             command_type, confirmation,
             param1, param2, param3, param4, param5, param6, param7)
-        self.add_to_queue(msg)
+        self.send_message(msg)
 
     def arm(self):
         # send an arm command through mavlink
@@ -365,7 +400,7 @@ class MavlinkConnection(connection.Connection):
         msg = self._master.mav.set_attitude_target_encode(
             time_boot_ms, self._target_system, self._target_component, mask,
             q, 0, 0, 0, collective)
-        self.add_to_queue(msg)
+        self.send_message(msg)
 
     def cmd_attitude_rate(self, yaw_rate, pitch_rate, roll_rate, collective):
         time_boot_ms = 0  # this does not need to be set to a specific time
@@ -374,7 +409,7 @@ class MavlinkConnection(connection.Connection):
         msg = self._master.mav.set_attitude_target_encode(
             time_boot_ms, target_system, target_component, mask,
             q, roll_rate, pitch_rate, yaw_rate, collective)
-        self.add_to_queue(msg)    
+        self.send_message(msg)    
 
     def cmd_velocity(self, vn, ve, vd, heading):
         time_boot_ms = 0  # this does not need to be set to a specific time
@@ -386,7 +421,7 @@ class MavlinkConnection(connection.Connection):
             vn, ve, vd,
             0, 0, 0,
             heading, 0)
-        self.add_to_queue(msg)
+        self.send_message(msg)
 
     def cmd_motors(self, motor1, motor2, motor3, motor4):
         # TODO: implement this
@@ -403,7 +438,7 @@ class MavlinkConnection(connection.Connection):
             0, 0, 0,
             0, 0, 0,
             heading, 0)
-        self.add_to_queue(msg)
+        self.send_message(msg)
 
     def takeoff(self, n, e, d):
         # for mavlink to PX4 need to specify the NED location for landing
@@ -419,7 +454,7 @@ class MavlinkConnection(connection.Connection):
             0, 0, 0,
             0, 0, 0,
             0, 0)
-        self.add_to_queue(msg)
+        self.send_message(msg)
 
     def land(self, n, e):
         # for mavlink to PX4 need to specify the NED location for landing
@@ -436,7 +471,7 @@ class MavlinkConnection(connection.Connection):
             0, 0, 0,
             0, 0, 0,
             0, 0)
-        self.add_to_queue(msg)
+        self.send_message(msg)
 
     def set_home_position(self, lat, lon, alt):
         self.send_long_command(mavutil.mavlink.MAV_CMD_DO_SET_HOME, 0, 0, 0, 0, lat, lon, alt)
