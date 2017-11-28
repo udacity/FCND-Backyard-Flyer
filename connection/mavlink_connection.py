@@ -314,15 +314,12 @@ class MavlinkConnection(connection.Connection):
             self.dispatch_loop()
 
     def stop(self):
+        # set running to false -> this will stop the dispatch and command while loops
         self._running = False
 
-        # join the write thread   
-        self._write_handle.join()
+        # NOTE: no need to call join on the threads as both threads are daemon threads
 
-        # join the read thread if needed
-        if self._threaded:
-            self._read_handle.join()
-
+        # close the connection
         print("closing the connection")
         self._master.close()
 
@@ -384,6 +381,7 @@ class MavlinkConnection(connection.Connection):
 
     def cmd_position(self, n, e, d, heading):
         time_boot_ms = 0  # this does not need to be set to a specific time
+        mask = MASK_IS_LOITER
         mask = (MASK_IGNORE_YAW_RATE | MASK_IGNORE_ACCELERATION | MASK_IGNORE_VELOCITY)
         msg = self._master.mav.set_position_target_local_ned_encode(
             time_boot_ms, self._target_system, self._target_component,

@@ -40,7 +40,6 @@ class BackyardFlyer(Drone):
         
         @self.msg_callback(mt.MSG_LOCAL_POSITION)
         def local_position_callback(msg_name,msg):
-            print(msg.local_vector)
             if self.flight_state == States.MANUAL:
                 pass
             elif self.flight_state == States.ARMING:
@@ -80,8 +79,6 @@ class BackyardFlyer(Drone):
             
         @self.msg_callback(mt.MSG_STATE)
         def state_callback(msg_name,msg):
-            #print("armed: " + str(msg.armed))
-            #print("guided: " + str(msg.guided))
             if self.in_mission:
                 if self.flight_state == States.MANUAL:
                     self.arming_transition()
