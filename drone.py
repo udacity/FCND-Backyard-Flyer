@@ -19,9 +19,9 @@ class Drone:
             self.connection = kwargs['connection']            
         else:
             # TODO: reset this to what it currently is in the master branch
-            self.connection = mc.MavlinkConnection("udp:127.0.0.1:14540", threaded=thread, PX4=True)
-        
-        
+            #self.connection = mc.MavlinkConnection("udp:127.0.0.1:14540", threaded=thread, PX4=True)
+            self.connection = mc.MavlinkConnection("tcp:127.0.0.1:5760", threaded=thread, PX4=True)
+
         #Global position in degrees
         self._longitude = 0.0
         self._latitude = 0.0
