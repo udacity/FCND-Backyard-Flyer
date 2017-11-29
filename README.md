@@ -225,10 +225,10 @@ drone.stop()
 The telemetry data is automatically logged in "Logs\TLog.txt". Each row contains a comma seperated representation of each message. The first row is the incoming message type. The second row is the time. The rest of the rows contains all the message properties. The types of messages relevant to this project are:
 
 * `state_msg`: time (ms), armed (bool), guided (bool)
-* `global_position_msg`: time (ms), longitude (deg), latitude (deg), altitude (m)
-* `global_home_msg`: time (ms), longitude (deg), latitude (deg), altitude (m)
-* `local_position_msg`: time (ms), north (m), east (m), down (m)
-* `local_velocity_msg`: time (ms), north (m), east (m), down (m) 
+* `global_position_msg`: time (ms), longitude (deg), latitude (deg), altitude (meter)
+* `global_home_msg`: time (ms), longitude (deg), latitude (deg), altitude (meter)
+* `local_position_msg`: time (ms), north (meter), east (meter), down (meter)
+* `local_velocity_msg`: time (ms), north (meter), east (meter), down (meter) 
 
 
 #### Reading Telemetry Logs
