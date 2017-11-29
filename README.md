@@ -292,10 +292,10 @@ Similar to the manual flight, the GPS data is automatically logged to the specif
 Two different reference frames are used. Global positions are defined [longitude, latitude, altitude (pos up)]. Local reference frames are defined [North, East, Down (pos down)] and is relative to a nearby global home provided. Both reference frames are defined in a proper right-handed reference frame . The global reference frame is what is provided by the Drone's GPS, but degrees are difficult to work with on a small scale. Conversion to a local frame allows for easy calculation of m level distances. Two convenience function are provided to convert between the two frames. These functions are wrappers on `utm` library functions.
 
 ~~~
-# Convert a local position (north,east,down) relative to the home position to a global position (lon,lat,up)
+# Convert a local position (north, east, down) relative to the home position to a global position (lon, lat, up)
 def local_to_global(local_position, global_home):
 
-# Convert a global position (lon,lat,up) to a local position (north,east,down) relative to the home position
+# Convert a global position (lon, lat, up) to a local position (north, east, down) relative to the home position
 def global_to_local(global_position, global_home):
 ~~~
 
