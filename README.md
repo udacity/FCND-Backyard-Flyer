@@ -157,8 +157,8 @@ def all_msg_listener(self,name, msg):
 
 Besides being passed to appropriate callbacks, the message data is also saved into the following attributes of the Drone class:
 
-* `global_position`: latitude (deg), longitude (deg), altitude (m)
-* `local_position`: north (m), east (m), down (m)
+* `global_position`: latitude (deg), longitude (deg), altitude (meter)
+* `local_position`: north (meter), east (meter), down (meter)
 * `local_velocity`: north velocity (m/s), east velocity (m/s), vertical velocity (m/s, positive down)
 * `armed`: True/False
 * `guided`: True/False
