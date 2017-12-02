@@ -1,13 +1,15 @@
-"""API definition for connections to a drone
+"""API definition for connections to a drone.
 
-defines a class to be subclassed by specific protocol implementations for 
+Defines a class to be subclassed by specific protocol implementations for 
 communication with a drone.
 """
 
 from abc import ABCMeta, abstractmethod
 
-# set of enums for the different possible connection types
-# NOTE: right now the only implemented type is PX4 mavlink
+"""
+Set of enums for the different possible connection types
+NOTE: right now the only implemented type is PX4 mavlink
+"""
 CONNECTION_TYPE_MAVLINK_PX4 = 1
 # CONNECTION_TYPE_MAVLINK_APM = 2
 # CONNECTION_TYPE_PARROT = 3
@@ -15,12 +17,11 @@ CONNECTION_TYPE_MAVLINK_PX4 = 1
 
 
 class Connection():
-    """abstract class for a connection to a drone.
+    """
+    Abstract class for a connection to a drone.
 
-    abstract class that outlines the required API functions that need to be 
-    implemented for each different possible drone protocol.
-    this class can NOT be directly instantiated, but rather needs to be extended
-    by each specific protocol that is desired.
+    Outlines the required API functions (interface) that must be 
+    implemented to satisfy the drone communication protocol.
 
     Attributes:
         __metaclass__: specifies this class as an abstract class
@@ -28,9 +29,8 @@ class Connection():
     __metaclass__ = ABCMeta
 
     def __init__(self, threaded=False):
-        """default connection constructor
-
-        initializes an empty dictionary of listeners for the possible different
+        """
+        Initializes an empty dictionary of listeners for the possible different
         messages that will be sent.
         Each subclass should call this constructor in addition to any custom
         element needed for each respective communication protocol.
@@ -213,9 +213,9 @@ class Connection():
         defined in a local frame (NED frame)
         
         Args:
-            vn: desired north velocity component in m/s
-            ve: desired east velocity component in m/s
-            vd: desired down velocity component in m/s (note: positive down!)
+            vn: desired north velocity component in meters/second
+            ve: desired east velocity component in meters/second
+            vd: desired down velocity component in meters/second (note: positive down!)
             heading: desired vehicle heading in degrees [0, 360)
         """
         pass
@@ -243,9 +243,9 @@ class Connection():
         defined in a local frame (NED frame)
         
         Args:
-            n: desired north position in m
-            e: desired east position in m
-            d: desired down position in m (note: positive down!)
+            n: desired north position in meters
+            e: desired east position in meters
+            d: desired down position in meters (note: positive down!)
             heading: desired vehicle heading in degrees [0, 360)
         """
         pass
@@ -260,9 +260,9 @@ class Connection():
         must be passed along with d for this command.
 
         Args:
-            n: current north position in m
-            e: current east position in m
-            d: desired down position in m (note: positive down!)
+            n: current north position in meters
+            e: current east position in meters
+            d: desired down position in meters (note: positive down!)
         """
         pass
 
@@ -276,8 +276,8 @@ class Connection():
         must be passed along (d is automatically set to 0).
         
         Args:
-            n: current north position in m
-            e: current east position in m
+            n: current north position in meters
+            e: current east position in meters
         """
         pass
 
