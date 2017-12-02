@@ -48,8 +48,10 @@ class Logger:
             
         self.log.write('\n')
 
-#Returns a numpy 2D array of the data
 def read_log(filename):
+    """
+    Returns a numpy 2D array of the data
+    """
     return np.loadtxt(filename,delimiter=',',dtype='Float64')
     
     
