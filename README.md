@@ -1,4 +1,4 @@
-# Flying Car - Backyard Flyer Project
+# FCND - Backyard Flyer Project
 This project is intended to walk you through the first steps of autonomously flying a drone. You will be using flying a quadcopter in simulation developed in Unity. After completing this assigment, you will be fimiliar with passing commands and receiving incoming data from the drone. You will also set up a state machine using event-driven programming.
 
 The python code you write is similar to how the drone would be controlled from a ground station computer or an onboard companion computer. Since communication with the drone is done using MAVLink, you will be able to use your code to control an PX4 quadcopter autopilot with very little modification!
