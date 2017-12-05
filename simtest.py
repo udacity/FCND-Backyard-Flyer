@@ -43,7 +43,7 @@ class FakeDrone:
 
             # TODO: add handling for all other messages here
 
-        # these neeed to be defined within the init method to work properly
+            # these neeed to be defined within the init method to work properly
         @self.on_attribute('*')
         def attribute_listener_test(self, name, data):
             ''' dummy listener that is registered for all attribute changes '''
@@ -55,7 +55,7 @@ class FakeDrone:
             # TODO: need to make more specific attribute listeners with specific capabilities
 
         @self.on_attribute('gps')
-        def gps_listener_test(self, name, data):            
+        def gps_listener_test(self, name, data):
             # need to be constantly sending commands for PX4 to accept offboard control
             # send a position
             print(self.gps_position)

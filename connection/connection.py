@@ -5,12 +5,12 @@ communication with a drone.
 """
 
 from abc import ABCMeta, abstractmethod
-
 """
 Set of enums for the different possible connection types
 NOTE: right now the only implemented type is PX4 mavlink
 """
 CONNECTION_TYPE_MAVLINK_PX4 = 1
+
 # CONNECTION_TYPE_MAVLINK_APM = 2
 # CONNECTION_TYPE_PARROT = 3
 # CONNECTION_TYPE_DJI = 4
@@ -119,7 +119,7 @@ class Connection():
                 #print("[CONNECTION ERROR] unable to handle message listener for " + name)
                 #print(e)
 
-        # handle the listeners that are registered for all messages
+            # handle the listeners that are registered for all messages
         for fn in self._message_listeners.get('*', []):
             try:
                 fn(self, name, msg)
