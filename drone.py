@@ -9,17 +9,10 @@ import time
 
 class Drone:
     
-    def __init__(self,**kwargs):
-        if 'threaded' in kwargs.keys():
-            thread = kwargs['threaded']
-        else:
-            thread = True
+    def __init__(self, protocol='tcp', ip_addr='127.0.0.1', port=5760, threaded=True):
             
-        if 'connection' in kwargs.keys():
-            self.connection = kwargs['connection']            
-        else:
-            self.connection = mc.MavlinkConnection("tcp:127.0.0.1:5760",threaded=thread)
-        
+        comm_addr = '{0}:{1}:{2}'.format(protocol, ip_addr, port)
+        self.connection = mc.MavlinkConnection(comm_addr, threaded=threaded)
         
         #Global position in degrees
         self._longitude = 0.0
