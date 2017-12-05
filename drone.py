@@ -8,6 +8,7 @@ import time
 
 
 class Drone:
+
     def __init__(self, protocol='tcp', addr='127.0.0.1', port=5760, **kwargs):
         if 'threaded' in kwargs.keys():
             thread = kwargs['threaded']
@@ -20,47 +21,47 @@ class Drone:
             comm_addr = '{0}:{1}:{2}'.format(protocol, addr, port)
             self.connection = mc.MavlinkConnection(comm_addr, threaded=thread)
 
-        #Global position in degrees
+        # Global position in degrees
         self._longitude = 0.0
         self._latitude = 0.0
         self._altitude = 0.0
 
-        #Reference home position in degrees
+        # Reference home position in degrees
         self._home_longitude = 0.0
         self._home_latitude = 0.0
         self._home_altitude = 0.0
 
-        #Local positions in meters from the global home
+        # Local positions in meters from the global home
         self._north = 0.0
         self._east = 0.0
         self._down = 0.0
 
-        #Locally oriented velocity in m/s
+        # Locally oriented velocity in m/s
         self._velocity_north = 0.0
         self._velocity_east = 0.0
         self._velocity_down = 0.0
 
-        #Vehicle state information
+        # Vehicle state information
         self._armed = False
         self._guided = False
         self._connected = False
 
-        #Euler angles in degrees defined in 3-2-1 rotation
+        # Euler angles in degrees defined in 3-2-1 rotation
         self._roll = 0.0
         self._pitch = 0.0
         self._yaw = 0.0
 
-        #Body accelerations
+        # Body accelerations
         self._acceleration_x = 0.0
         self._acceleration_y = 0.0
         self._acceleration_z = 0.0
 
-        #Gyro rates
+        # Gyro rates
         self._gyro_x = 0.0
         self._gyro_y = 0.0
         self._gyro_z = 0.0
 
-        #Barometer
+        # Barometer
         self._baro_altitude = 0.0
 
         self._update_property = {
@@ -75,7 +76,7 @@ class Drone:
             'baro_msg': self._update_barometer
         }
 
-        #self.conn.add_message_listener('*',self.on_message_receive)
+        # self.conn.add_message_listener('*',self.on_message_receive)
 
         self._message_listeners = {}
 
@@ -94,8 +95,7 @@ class Drone:
 
     @property
     def global_home(self):
-        return np.array(
-            [self._home_longitude, self._home_latitude, self._home_altitude])
+        return np.array([self._home_longitude, self._home_latitude, self._home_altitude])
 
     def _update_global_home(self, msg):
         self._home_longitude = msg.longitude
@@ -114,8 +114,7 @@ class Drone:
 
     @property
     def local_velocity(self):
-        return np.array(
-            [self._velocity_north, self._velocity_east, self._velocity_down])
+        return np.array([self._velocity_north, self._velocity_east, self._velocity_down])
 
     def _update_local_velocity(self, msg):
         self._velocity_north = msg.north
@@ -150,8 +149,7 @@ class Drone:
 
     @property
     def acceleration_raw(self):
-        return np.array(
-            [self._acceleration_x, self._acceleration_y, self._acceleration_z])
+        return np.array([self._acceleration_x, self._acceleration_y, self._acceleration_z])
 
     def _update_acceleration_raw(self, msg):
         self._acceleration_x = msg.x
@@ -175,6 +173,7 @@ class Drone:
         self._baro_altitude = msg.altitude
 
     def callbacks(self):
+
         @self.connection.on_message('*')
         def on_message_receive(_, msg_name, msg):
             if msg_name == mt.MSG_CONNECTION_CLOSED:
@@ -213,8 +212,7 @@ class Drone:
                     elif line_split[i] == 'False':
                         entry[i - 1] = np.append(entry[i - 1], False)
                     else:
-                        entry[i - 1] = np.append(entry[i - 1],
-                                                 float(line_split[i]))
+                        entry[i - 1] = np.append(entry[i - 1], float(line_split[i]))
             else:
                 entry = []
                 for i in range(1, len(line_split)):
@@ -360,16 +358,14 @@ class Drone:
     def takeoff(self, target_altitude):
         """Command the vehicle to takeoff to the target_alt (in meters)"""
         try:
-            self.connection.takeoff(self.local_position[0],
-                                    self.local_position[1], target_altitude)
+            self.connection.takeoff(self.local_position[0], self.local_position[1], target_altitude)
         except:
             print("takeoff no defined")
 
     def land(self):
         """Command the vehicle to land at its current position"""
         try:
-            self.connection.land(self.local_position[0],
-                                 self.local_position[1])
+            self.connection.land(self.local_position[0], self.local_position[1])
         except:
             print("land not defined")
 
@@ -379,20 +375,17 @@ class Drone:
             collective: upward acceleration in m/s**2
         """
         try:
-            self.connection.cmd_attitude_rate(roll_rate, pitch_rate, yaw_rate,
-                                              collective)
+            self.connection.cmd_attitude_rate(roll_rate, pitch_rate, yaw_rate, collective)
         except:
             print("cmd_attitude_rate not defined")
 
-    def cmd_velocity(self, velocity_north, velocity_east, velocity_down,
-                     heading):
+    def cmd_velocity(self, velocity_north, velocity_east, velocity_down, heading):
         """Command the vehicle velocity
             north_velocity,east_velocity,down_velocity: in m/s
             heading: in degrees
         """
         try:
-            self.connection.cmd_velocity(velocity_north, velocity_east,
-                                         velocity_down, heading)
+            self.connection.cmd_velocity(velocity_north, velocity_east, velocity_down, heading)
         except:
             print("cmd_velocity not defined")
 
