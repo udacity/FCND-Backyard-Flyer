@@ -9,7 +9,7 @@ import time
 
 class Drone:
 
-    def __init__(self, protocol='tcp', ip_addr='127.0.0.1', port=5760, baud=921600, threaded=True, PX4=False):
+    def __init__(self, protocol='tcp', ip_addr='127.0.0.1', port=5760, baud=921600, threaded=True, PX4=False, tlog_name="TLog.txt"):
         # for a serial connection, have a different format for the address
         if protocol == 'serial':
             comm_addr = '{},{}'.format(port, baud)
@@ -88,7 +88,7 @@ class Drone:
 
         self._message_listeners = {}
         self.callbacks()
-        self.tlog = logger.Logger("Logs", "TLog.txt")
+        self.tlog = logger.Logger("Logs", tlog_name)
 
     @property
     def global_position(self):
@@ -442,6 +442,6 @@ class Drone:
 
 
 if __name__ == "__main__":
-    drone = Drone(threaded=False)
+    drone = Drone(threaded=False, tlog_name="TLog-manual.txt")
     time.sleep(2)
     drone.start()
