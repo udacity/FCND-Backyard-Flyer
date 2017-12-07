@@ -66,11 +66,11 @@ class Message:
 class StateMessage(Message):
     """State information message
     
-    message to carry vehicle state information
+    message to carry drone state information
     
     Attributes:
-        _armed: whether or not vehicle is armed
-        _guided: whether or not vehicle can be commanded from python
+        _armed: whether or not drone is armed
+        _guided: whether or not drone can be commanded from python
     """
 
     def __init__(self, time, armed, guided):
@@ -80,12 +80,12 @@ class StateMessage(Message):
 
     @property
     def armed(self):
-        """bool: true if the vehicle is armed and ready to fly """
+        """bool: true if the drone is armed and ready to fly """
         return self._armed
 
     @property
     def guided(self):
-        """bool: true if the vehicle can be commanded from python """
+        """bool: true if the drone can be commanded from python """
         return self._guided
 
 
@@ -209,9 +209,9 @@ class FrameMessage(Message):
     Messages defining the rotation between frames (Euler angles or Quaternions)
 
     Attributes:
-        _roll: vehicle roll in degrees
-        _pitch: vehicle pitch in degrees
-        _yaw: vehicle yaw in degrees
+        _roll: drone roll in degrees
+        _pitch: drone pitch in degrees
+        _yaw: drone yaw in degrees
         _q0: 0th element of quaterion
         _q1: 1th element of quaterion
         _q2: 2th element of quaterion
@@ -304,7 +304,7 @@ class DistanceSensorMessage(Message):
     """Message for distance sensor (e.g. Lidar) information
     
     the properties of and measurement from a given distance sensor onboard
-    the vehicle.
+    the drone.
 
     Attributes:
         _min_distance: minimum detectable distance in meters

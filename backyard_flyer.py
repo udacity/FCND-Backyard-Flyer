@@ -76,7 +76,7 @@ class BackyardFlyer(Drone):
     def arming_transition(self):
         """TODO: Fill out this method
         
-        1. Take control of the vehicle
+        1. Take control of the drone
         2. Pass an arming command
         3. Set the home location to current position
         4. Transition to the ARMING state
@@ -103,7 +103,7 @@ class BackyardFlyer(Drone):
     def landing_transition(self):
         """TODO: Fill out this method
         
-        1. Command the vehicle to land
+        1. Command the drone to land
         2. Transition to the LANDING state
         """
         print("landing transition")
@@ -111,7 +111,7 @@ class BackyardFlyer(Drone):
     def disarming_transition(self):
         """TODO: Fill out this method
         
-        1. Command the vehicle to disarm
+        1. Command the drone to disarm
         2. Transition to the DISARMING state
         """
         print("disarm transition")
@@ -119,7 +119,7 @@ class BackyardFlyer(Drone):
     def manual_transition(self):
         """This method is provided
         
-        1. Release control of the vehicle
+        1. Release control of the drone
         2. Stop the connection (and telemetry log)
         3. End the mission
         4. Transition to the MANUAL state

@@ -100,7 +100,7 @@ A wrapper `Drone` superclass was written to handle all the communication between
 
 The following incoming message types are available for the Backyard Flyer Project:
 
-* `state_msg`: Information about whether the vehicle is armed and in guided mode
+* `state_msg`: Information about whether the drone is armed and in guided mode
 * `global_position_msg`: latitude, longitude, altitude
 * `local_position_msg`: local north, local east, local down
 * `local_velocity_msg`: local north velocity, local east velocity, local vertical velocity (positive up)
@@ -153,7 +153,7 @@ def all_msg_listener(self,name, msg):
 ~~~
         
 
-### Vehicle Attributes
+### drone Attributes
 
 Besides being passed to appropriate callbacks, the message data is also saved into the following attributes of the Drone class:
 
@@ -163,7 +163,7 @@ Besides being passed to appropriate callbacks, the message data is also saved in
 * `armed`: True/False
 * `guided`: True/False
 
-Vehicle attribute can be used if information is required from multiple messages. For example:
+drone attribute can be used if information is required from multiple messages. For example:
 
 ~~~
 @self.msg_callback(message_types.MSG_GLOBAL_POSITION)
@@ -183,7 +183,7 @@ The following commands are implemented for the Backyard Flyer Project:
 * `disarm()`: Disarms the motors of the quad. The quadcopter cannot be disarmed in the air
 * `take_control()`: Set the command mode of the quad to guided
 * `release_control()`: Set the command mode of the quad to manual
-* `cmd_position(north, east, down, heading)`: Command the vehicle to travel to the local position (north, east, down). Also commands the quad to maintain a specified heading
+* `cmd_position(north, east, down, heading)`: Command the drone to travel to the local position (north, east, down). Also commands the quad to maintain a specified heading
 * `takeoff(target_altitude)`: Takeoff from the current location to the specified global altitude
 * `land()`: Land in the current position
 * `stop()`: Terminate the connection with the drone and close the telemetry log
@@ -256,12 +256,12 @@ The data between different messages will not be time synced since they are recor
 After getting familiar with how the drone flies, you will fill in the missing pieces of a state machine to fly the drone autonomously. The state machine is run continuously until either the mission is ended or the Mavlink connection is lost.
 
 The six states predefined for the state machine:
-* MANUAL: the vehicle is being controlled by the user
-* ARMING: the vehicle is in guided mode and being armed
-* TAKEOFF: the vehicle is taking off from the ground
-* WAYPOINT: the vehicle is flying to a specified target position
-* LANDING: the vehicle is landing on the ground
-* DISARMING: the vehicle is disarming
+* MANUAL: the drone is being controlled by the user
+* ARMING: the drone is in guided mode and being armed
+* TAKEOFF: the drone is taking off from the ground
+* WAYPOINT: the drone is flying to a specified target position
+* LANDING: the drone is landing on the ground
+* DISARMING: the drone is disarming
 
 While the drone is in each state, you will need to check transition criteria with a registered callback. If the transition criteria are met, you will set the next state and pass along any commands to the drone. For example:
 
@@ -274,7 +274,7 @@ def state_callback(msg_name, msg):
         	self.in_mission = False
         	self.state = States.MANUAL
 ~~~
-This is a callback on the state message. It only checks anything if it's in the DISARMING state. If it detects that the vehicle is successfully disarmed, it sets the mode back to manual and terminates the mission.       
+This is a callback on the state message. It only checks anything if it's in the DISARMING state. If it detects that the drone is successfully disarmed, it sets the mode back to manual and terminates the mission.       
 
 ### Running the State Machine
 After filling in the appropriate callbacks, you will run the mission:
@@ -305,9 +305,9 @@ def global_to_local(global_position, global_home):
 
 * Filled in backyard_flyer.py
 
-* An x-y (East-North or Long-Lat) plot of the vehicle trajectory while manually flying the box
+* An x-y (East-North or Long-Lat) plot of the drone trajectory while manually flying the box
 
-* An x-y (East-North or Long-Lat) plot of the vehicle trajectory from autonomously flying the box
+* An x-y (East-North or Long-Lat) plot of the drone trajectory from autonomously flying the box
 
 * A short write-up (.md or .pdf)
 

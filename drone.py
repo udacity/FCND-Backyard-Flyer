@@ -13,47 +13,56 @@ class Drone:
         comm_addr = '{0}:{1}:{2}'.format(protocol, ip_addr, port)
         self.connection = mc.MavlinkConnection(comm_addr, threaded=threaded)
 
-        #Global position in degrees
-        self._longitude = 0.0
-        self._latitude = 0.0
-        self._altitude = 0.0
+        # Global position in degrees (int)
+        self._longitude = 0
+        self._latitude = 0
+        self._altitude = 0
 
-        #Reference home position in degrees
-        self._home_longitude = 0.0
-        self._home_latitude = 0.0
-        self._home_altitude = 0.0
+        #Reference home position in degrees (int)
+        self._home_longitude = 0
+        self._home_latitude = 0
+        self._home_altitude = 0
 
-        #Local positions in meters from the global home
+        # Local positions in meters from the global home (float)
+        # In NED frame
         self._north = 0.0
         self._east = 0.0
         self._down = 0.0
 
-        #Locally oriented velocity in m/s
+        # Locally oriented velocity in meters/second
+        # In NED frame
         self._velocity_north = 0.0
         self._velocity_east = 0.0
         self._velocity_down = 0.0
 
-        #Vehicle state information
+        # If the drone is armed the motors are powered and the rotors are spinning.
         self._armed = False
+
+        # If the drone is guided it is being autonomously controlled,
+        # the other opposite would be manual control.
         self._guided = False
+
+        # If there is an active connection to a simulated or physical drone.
         self._connected = False
 
-        #Euler angles in degrees defined in 3-2-1 rotation
+        # Euler angles in radians
         self._roll = 0.0
         self._pitch = 0.0
         self._yaw = 0.0
 
-        #Body accelerations
+        # Drone body accelerations
         self._acceleration_x = 0.0
         self._acceleration_y = 0.0
         self._acceleration_z = 0.0
 
-        #Gyro rates
+        # Drone gyro rates or angular velocities in radians/second
+        # TODO: Explain what x, y, and z are.
         self._gyro_x = 0.0
         self._gyro_y = 0.0
         self._gyro_z = 0.0
 
-        #Barometer
+        # Barometer
+        # TODO: better explanation
         self._baro_altitude = 0.0
 
         self._update_property = {
@@ -71,9 +80,7 @@ class Drone:
         #self.conn.add_message_listener('*',self.on_message_receive)
 
         self._message_listeners = {}
-
         self.callbacks()
-
         self.tlog = logger.Logger("Logs", "TLog.txt")
 
     @property
@@ -131,6 +138,7 @@ class Drone:
 
     @property
     def euler_angle(self):
+        """Roll, pitch, yaw euler angles in radians"""
         return np.array([self._roll, self._pitch, self._yaw])
 
     def _update_euler_angle(self, msg):
@@ -149,6 +157,7 @@ class Drone:
 
     @property
     def gyro_raw(self):
+        """Angular velocites in radians/second"""
         return np.array([self._gryo_x, self._gyro_y, self._gyro_z])
 
     def _update_gyro_raw(self, msg):
@@ -164,7 +173,6 @@ class Drone:
         self._baro_altitude = msg.altitude
 
     def callbacks(self):
-
         @self.connection.on_message('*')
         def on_message_receive(_, msg_name, msg):
             if msg_name == mt.MSG_CONNECTION_CLOSED:
@@ -298,7 +306,7 @@ class Drone:
     #
 
     def connect(self):
-        ''' Conect to the specified device'''
+        """Attempts a connection to the address defined upon initialization"""
         self.connection.start()
         while self.connected == False:
             pass
@@ -309,21 +317,21 @@ class Drone:
         self._connected = False
 
     def arm(self):
-        """Send an arm command to the vehicle"""
+        """Send an arm command to the drone"""
         try:
             self.connection.arm()
         except:
             print("arm command not defined")
 
     def disarm(self):
-        """Send a disarm command to the vehicle"""
+        """Send a disarm command to the drone"""
         try:
             self.connection.disarm()
         except:
             print("disarm command not defined")
 
     def take_control(self):
-        """Take control of the vehicle """
+        """If the drone is in guided mode this will switch to manual mode"""
         print('Take Control Messsage')
         try:
             self.connection.take_control()
@@ -331,18 +339,18 @@ class Drone:
             print("take_control command not defined")
 
     def release_control(self):
-        """Take control of the vehicle """
+        """Take control of the drone """
         try:
             self.connection.release_control()
         except:
             print("release_control command not defined")
 
     def cmd_position(self, north, east, down, heading):
-        """ Command the local position and vehicle heading
+        """ Command the local position and drone heading
             north: local north in meters
             east: local east in meters
             down: local down in meters (positive down)
-            heading: vehicle yaw in degrees
+            heading: drone yaw in degrees
         """
         try:
             self.connection.cmd_position(north, east, down, heading)
@@ -350,21 +358,21 @@ class Drone:
             print("cmd_position not defined")
 
     def takeoff(self, target_altitude):
-        """Command the vehicle to takeoff to the target_alt (in meters)"""
+        """Command the drone to takeoff to the target_alt (in meters)"""
         try:
             self.connection.takeoff(self.local_position[0], self.local_position[1], target_altitude)
         except:
             print("takeoff no defined")
 
     def land(self):
-        """Command the vehicle to land at its current position"""
+        """Command the drone to land at its current position"""
         try:
             self.connection.land(self.local_position[0], self.local_position[1])
         except:
             print("land not defined")
 
     def cmd_attitude_rate(self, roll_rate, pitch_rate, yaw_rate, collective):
-        """Command the vehicle orientation rates
+        """Command the drone orientation rates
             roll_rate,pitch_rate,yaw_rate: in deg/s
             collective: upward acceleration in m/s**2
         """
@@ -374,7 +382,7 @@ class Drone:
             print("cmd_attitude_rate not defined")
 
     def cmd_velocity(self, velocity_north, velocity_east, velocity_down, heading):
-        """Command the vehicle velocity
+        """Command the drone velocity
             north_velocity,east_velocity,down_velocity: in m/s
             heading: in degrees
         """
@@ -401,6 +409,7 @@ class Drone:
         self.log = logger.Logger(directory, name)
 
     def stop_log(self):
+        """Stop collection of logs"""
         self.log.close()
 
     def start(self):

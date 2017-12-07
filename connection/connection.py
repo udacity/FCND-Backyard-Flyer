@@ -216,7 +216,7 @@ class Connection():
             vn: desired north velocity component in meters/second
             ve: desired east velocity component in meters/second
             vd: desired down velocity component in meters/second (note: positive down!)
-            heading: desired vehicle heading in degrees [0, 360)
+            heading: desired drone heading in degrees [0, 360)
         """
         pass
 
@@ -246,7 +246,7 @@ class Connection():
             n: desired north position in meters
             e: desired east position in meters
             d: desired down position in meters (note: positive down!)
-            heading: desired vehicle heading in degrees [0, 360)
+            heading: desired drone heading in degrees [0, 360)
         """
         pass
 

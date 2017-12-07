@@ -149,7 +149,7 @@ class TestClass:
             prev_time = current_time
             '''
             if self.state[1] is False:
-                self.mavconn.take_control()  # request offboard control of the vehicle
+                self.mavconn.take_control()  # request offboard control of the drone
                 print("requesting offboard control")
 
             elif self.state[0] is False:
