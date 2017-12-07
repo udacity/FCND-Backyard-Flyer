@@ -23,8 +23,8 @@ class States(Enum):
 
 class BackyardFlyer(Drone):
     
-    def __init__(self, protocol='tcp', ip_addr='127.0.0.1', port=5760, threaded=True, PX4=False):
-        super().__init__(protocol=protocol, ip_addr=ip_addr, port=port, threaded=threaded, PX4=PX4)
+    def __init__(self, protocol='tcp', ip_addr='127.0.0.1', port=5760, baud=921600, threaded=True, PX4=False):
+        super().__init__(protocol=protocol, ip_addr=ip_addr, port=port, baud=baud, threaded=threaded, PX4=PX4)
         self.target_position = np.array([0.0,0.0,0.0])
         #self.global_home = np.array([0.0,0.0,0.0])  # can't set this here, no setter for this property
         self.all_waypoints = []
@@ -174,7 +174,7 @@ if __name__ == "__main__":
     # create a drone according to the desired connection type
 
     # using a HITL simulator
-    drone = BackyardFlyer(protocol="udp", ip_addr="127.0.0.1", port=14540, baud=57600, PX4=True, threaded=True)
+    drone = BackyardFlyer(protocol="udp", ip_addr="127.0.0.1", port=14540, PX4=True, threaded=True)
 
     # using a companion computer plugged into Pixhawk UART port
     #drone = BackyardFlyer(protocol="serial", port="/dev/ttyUSB0", baud=921600, PX4=True, threaded=True)
