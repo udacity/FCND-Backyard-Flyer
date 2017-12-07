@@ -9,9 +9,14 @@ import time
 
 class Drone:
 
-    def __init__(self, protocol='tcp', ip_addr='127.0.0.1', port=5760, threaded=True):
-        comm_addr = '{0}:{1}:{2}'.format(protocol, ip_addr, port)
-        self.connection = mc.MavlinkConnection(comm_addr, threaded=threaded)
+    def __init__(self, protocol='tcp', ip_addr='127.0.0.1', port=5760, baud=921600, threaded=True, PX4=False):
+        # for a serial connection, have a different format for the address
+        if protocol == 'serial':
+            comm_addr = '{},{}'.format(port, baud)
+        else:
+            comm_addr = '{0}:{1}:{2}'.format(protocol, ip_addr, port)
+        
+        self.connection = mc.MavlinkConnection(comm_addr, threaded=threaded, PX4=PX4)
 
         # Global position in degrees (int)
         # Altitude is in meters

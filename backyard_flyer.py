@@ -23,8 +23,8 @@ class States(Enum):
 
 class BackyardFlyer(Drone):
 
-    def __init__(self, protocol='tcp', ip_addr='127.0.0.1', port=5760, threaded=True):
-        super().__init__(protocol=protocol, ip_addr=ip_addr, port=port, threaded=threaded)
+    def __init__(self, protocol='tcp', ip_addr='127.0.0.1', port=5760, baud=921600, threaded=True, PX4=False):
+        super().__init__(protocol=protocol, ip_addr=ip_addr, port=port, baud=baud, threaded=threaded, PX4=PX4)
         # The position the drone is currently flying to.
         # This should be used to liftoff, land and transition to waypoints.
         self.target_position = np.array([0.0, 0.0, 0.0])
