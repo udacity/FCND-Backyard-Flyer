@@ -211,7 +211,7 @@ Alternatively, the drone can be manually started/stopped from a python/ipython s
 ```python
 from drone import Drone
 drone = Drone()
-drone.start(threaded=True)
+drone.start(threaded=True, tlog_name="TLog-manual.txt")
 ```
 
 If `threaded` is set to `False`, the code will block and the drone logging can only be stopped by terminating the simulation. If the connection is threaded, the drone can be commanded using the commands described above, and the connection can be stopped (and the log properly closed) using:
@@ -220,9 +220,11 @@ If `threaded` is set to `False`, the code will block and the drone logging can o
 drone.stop()
 ```
 
+When starting the drone manually from a python/ipython shell you have the option to provide a desired filename for the telemetry log file (such as "TLog-manual.txt" as shown above).  This allows you to customize the telemetry log name as desired to help keep track of different types of log files you might have.  Note that when running the drone from `python drone.py` for manual flight, the telemetry log will default to "TLog-manual.txt".
+
 ### Message Logging
 
-The telemetry data is automatically logged in "Logs\TLog.txt". Each row contains a comma seperated representation of each message. The first row is the incoming message type. The second row is the time. The rest of the rows contains all the message properties. The types of messages relevant to this project are:
+The telemetry data is automatically logged in "Logs\TLog.txt" or "Logs\TLog-manual.txt" for logs created when running `python drone.py`. Each row contains a comma seperated representation of each message. The first row is the incoming message type. The second row is the time. The rest of the rows contains all the message properties. The types of messages relevant to this project are:
 
 * `state_msg`: time (ms), armed (bool), guided (bool)
 * `global_position_msg`: time (ms), longitude (deg), latitude (deg), altitude (meter)
