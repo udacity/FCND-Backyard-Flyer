@@ -132,6 +132,7 @@ class MavlinkConnection(connection.Connection):
             # parse out the message based on the type and call
             # the appropriate callbacks
             if msg.get_type() == 'GLOBAL_POSITION_INT':
+                print("global: {}, {}, {}".format(msg.lat, msg.lon, msg.alt))
                 # parse out the gps position and trigger that callback
                 gps = mt.GlobalFrameMessage(timestamp, float(msg.lat)/1e7, 
                                             float(msg.lon)/1e7,
@@ -160,6 +161,7 @@ class MavlinkConnection(connection.Connection):
                 self.notify_message_listeners(mt.MSG_STATE, state)
 
             elif msg.get_type() == 'LOCAL_POSITION_NED':
+                print("local: {}, {}, {}".format(msg.x, msg.y, msg.z))
                 # parse out the local positin and trigger that callback
                 pos = mt.LocalFrameMessage(timestamp, msg.x, msg.y, msg.z)
                 self.notify_message_listeners(mt.MSG_LOCAL_POSITION, pos)

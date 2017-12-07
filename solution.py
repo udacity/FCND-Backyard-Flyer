@@ -40,7 +40,6 @@ class BackyardFlyer(Drone):
         
         @self.msg_callback(mt.MSG_LOCAL_POSITION)
         def local_position_callback(msg_name,msg):
-            print(msg.local_vector)
             if self.flight_state == States.MANUAL:
                 pass
             elif self.flight_state == States.ARMING:
@@ -109,6 +108,7 @@ class BackyardFlyer(Drone):
         print("arming transition")
         self.take_control()
         self.arm()
+        print(self.global_position)
         self.set_home_position(self.global_position[0],self.global_position[1],self.global_position[2]) #set the current location to be the home position
 
         self.flight_state = States.ARMING
