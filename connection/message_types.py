@@ -103,9 +103,9 @@ class GlobalFrameMessage(Message):
 
     def __init__(self, time, latitude, longitude, altitude):
         super().__init__(time)
-        self._longitude = int(longitude)
-        self._latitude = int(latitude)
-        self._altitude = int(altitude)
+        self._longitude = longitude
+        self._latitude = latitude
+        self._altitude = altitude
 
     @property
     def longitude(self):
