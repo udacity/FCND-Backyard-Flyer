@@ -115,7 +115,7 @@ The incoming message data is receiving using callbacks. These methods are only c
 
 Callbacks registered using decorators need to be defined (and decorated) within the 'callback' method. The callbacks method is called on initialization to register all the defined callbacks.
 
-~~~
+```python
 def callbacks(self):
 	""" Define your callbacks within here"""
 	super().callbacks()
@@ -123,34 +123,34 @@ def callbacks(self):
     @self.msg_callback(message_types.MSG_GLOBAL_POSITION)
 	def global_position_listener(name, global_position):
 		# do whatever with the global_position, which will be of type GlobalPosition
-~~~
+```
 
 
 
 2. Registering the callback for the respective message: 
 
-~~~
+```python
 self.add_message_listener(message_types.MSG_GLOBAL_POSITION, self.global_position_listener)
 
 def global_position_listener(self, name, global_position):
 	# do whatever you want with the global_position, which will be of type GlobalPosition
-~~~
+```
 
 A callback for all message types can be registered uisng, '*':
 
-~~~
+```python
 @self.msg_callback('*')
 def all_msg_listener(name, msg):
 	# this is a listener for all message types, so break out the msg as defined by the name
-~~~
+```
 
 or
 
-~~~
+```python
 self.add_message_listener('*',self.all_msg_listener)
 def all_msg_listener(self,name, msg):
 	# this is a listener for all message types, so break out the msg as defined by the name
-~~~
+```
         
 
 ### drone Attributes
@@ -165,12 +165,12 @@ Besides being passed to appropriate callbacks, the message data is also saved in
 
 drone attribute can be used if information is required from multiple messages. For example:
 
-~~~
+```python
 @self.msg_callback(message_types.MSG_GLOBAL_POSITION)
 	def global_position_listener(name, global_position):
 		if msg.global_position[2] < 0.05: # Checks the global altitude
         	if self.local_velocity[2] < 0.05 # Checks the latest drone velocity, since it isn't part of the message
-~~~
+```
 
 
 ### Outgoing Commands
@@ -190,17 +190,17 @@ The following commands are implemented for the Backyard Flyer Project:
 
 These can be called directly from other methods within the drone class:
 
-~~~
+```python
 self.arm() # Seends an arm command to the drone
-~~~
+```
 
 ### Manual Flight
 
 To log data while flying manually, run the `drone.py` script as shown below:
 
-~~~
+```sh
 python drone.py
-~~~
+```
 
 Run this script after starting the simulator. It connects to the simulator using the Drone class and runs until tcp connection is broken. The connection will timeout if it doesn't receive a heartbeat message once every 10 seconds. The GPS data is automatically logged.
 
@@ -208,17 +208,17 @@ To stop logging data, stop the simulator first and the script will automatically
 
 Alternatively, the drone can be manually started/stopped from a python/ipython shell:
 
-~~~
+```python
 from drone import Drone
 drone = Drone()
 drone.start(threaded=True)
-~~~
+```
 
 If `threaded` is set to `False`, the code will block and the drone logging can only be stopped by terminating the simulation. If the connection is threaded, the drone can be commanded using the commands described above, and the connection can be stopped (and the log properly closed) using:
 
-~~~
+```python
 drone.stop()
-~~~
+```
 
 ### Message Logging
 
@@ -235,18 +235,18 @@ The telemetry data is automatically logged in "Logs\TLog.txt". Each row contains
 
 Logs can be read using:
 
-~~~
+```python
 t_log = Drone.read_telemetry_data(filename)
-~~~
+```
 
 The data is stored as a dictionary of message types. For each message type, there is a list of numpy arrays. For example, to access the longitude and latitude from a `global_position_msg`:
 
-~~~
+```python
 # Time is always the first entry in the list
 time = t_log['global_position_msg'][0][:]
 longitude = t_log['global_position_msg'][1][:]
 latitude = t_log['global_position_msg'][2][:]
-~~~
+```
 
 The data between different messages will not be time synced since they are recorded at different times.
 
@@ -265,7 +265,7 @@ The six states predefined for the state machine:
 
 While the drone is in each state, you will need to check transition criteria with a registered callback. If the transition criteria are met, you will set the next state and pass along any commands to the drone. For example:
 
-~~~
+```python
 @self.on_message(mt.MSG_STATE)
 def state_callback(msg_name, msg):
 	if self.state == States.DISARMING:
@@ -273,15 +273,15 @@ def state_callback(msg_name, msg):
         	self.release_control()
         	self.in_mission = False
         	self.state = States.MANUAL
-~~~
+```
 This is a callback on the state message. It only checks anything if it's in the DISARMING state. If it detects that the drone is successfully disarmed, it sets the mode back to manual and terminates the mission.       
 
 ### Running the State Machine
 After filling in the appropriate callbacks, you will run the mission:
 
-~~~
+```sh
 python backyard_flyer.py
-~~~
+```
 
 Similar to the manual flight, the GPS data is automatically logged to the specified log file.
 
@@ -291,13 +291,13 @@ Similar to the manual flight, the GPS data is automatically logged to the specif
 
 Two different reference frames are used. Global positions are defined [longitude, latitude, altitude (pos up)]. Local reference frames are defined [North, East, Down (pos down)] and is relative to a nearby global home provided. Both reference frames are defined in a proper right-handed reference frame . The global reference frame is what is provided by the Drone's GPS, but degrees are difficult to work with on a small scale. Conversion to a local frame allows for easy calculation of m level distances. Two convenience function are provided to convert between the two frames. These functions are wrappers on `utm` library functions.
 
-~~~
+```python
 # Convert a local position (north, east, down) relative to the home position to a global position (lon, lat, up)
 def local_to_global(local_position, global_home):
 
 # Convert a global position (lon, lat, up) to a local position (north, east, down) relative to the home position
 def global_to_local(global_position, global_home):
-~~~
+```
 
 
 
