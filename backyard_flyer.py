@@ -25,8 +25,10 @@ class BackyardFlyer(Drone):
 
     def __init__(self, protocol='tcp', ip_addr='127.0.0.1', port=5760, threaded=True):
         super().__init__(protocol=protocol, ip_addr=ip_addr, port=port, threaded=threaded)
+        # The position the drone is currently flying to.
+        # This should be used to liftoff, land and transition to waypoints.
         self.target_position = np.array([0.0, 0.0, 0.0])
-        #self.global_home = np.array([0.0,0.0,0.0])  # can't set this here, no setter for this property
+        # self.global_home = np.array([0.0,0.0,0.0])  # can't set this here, no setter for this property
         self.all_waypoints = []
         self.in_mission = True
         self.check_state = {}
