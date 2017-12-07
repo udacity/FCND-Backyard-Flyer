@@ -312,13 +312,6 @@ class Drone:
     # Command method wrappers
     #
 
-    def connect(self):
-        """Attempts a connection to the address defined upon initialization"""
-        self.connection.start()
-        while self.connected == False:
-            pass
-        print("Connected to the Drone!")
-
     def disconnect(self):
         self.connection.stop()
         self._connected = False
