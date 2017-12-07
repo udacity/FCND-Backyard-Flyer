@@ -312,12 +312,14 @@ class MavlinkConnection(connection.Connection):
                 # no message that is useful
                 return None
 
-            # send a heartbeat message back, since this needs to be constantly sent so the autopilot knows this exists
+            # send a heartbeat message back, since this needs to be
+            # constantly sent so the autopilot knows this exists
             if msg.get_type() == 'HEARTBEAT':
                 # send -> type, autopilot, base mode, custom mode, system status
-                outmsg = self._master.mav.heartbeat_encode(mavutil.mavlink.MAV_TYPE_GCS,
-                                           mavutil.mavlink.MAV_AUTOPILOT_INVALID,
-                                           0, 0, mavutil.mavlink.MAV_STATE_ACTIVE)
+                outmsg = self._master.mav.heartbeat_encode(
+                    mavutil.mavlink.MAV_TYPE_GCS, mavutil.mavlink.MAV_AUTOPILOT_INVALID,
+                    0, 0, mavutil.mavlink.MAV_STATE_ACTIVE
+                )
                 self.send_message(outmsg)
 
             # pass the message along to be handled by this class
