@@ -8,6 +8,33 @@ import time
 
 
 class Drone:
+<<<<<<< HEAD
+    
+    def __init__(self,**kwargs):
+        if 'threaded' in kwargs.keys():
+            thread = kwargs['threaded']
+        else:
+            thread = True
+            
+        if 'connection' in kwargs.keys():
+            self.connection = kwargs['connection']            
+        else:
+            # TODO: reset this to what it currently is in the master branch
+            #self.connection = mc.MavlinkConnection("udp:127.0.0.1:14540", threaded=thread, PX4=True)
+            self.connection = mc.MavlinkConnection("tcp:127.0.0.1:5760", threaded=thread, PX4=True)
+
+        #Global position in degrees
+        self._longitude = 0.0
+        self._latitude = 0.0
+        self._altitude = 0.0
+        
+        #Reference home position in degrees
+        self._home_longitude = 0.0
+        self._home_latitude = 0.0
+        self._home_altitude = 0.0
+        
+        #Local positions in meters from the global home
+=======
 
     def __init__(self, protocol='tcp', ip_addr='127.0.0.1', port=5760, threaded=True):
         comm_addr = '{0}:{1}:{2}'.format(protocol, ip_addr, port)
@@ -27,6 +54,7 @@ class Drone:
 
         # Local positions in meters from the global home (float)
         # In NED frame
+>>>>>>> origin/master
         self._north = 0.0
         self._east = 0.0
         self._down = 0.0

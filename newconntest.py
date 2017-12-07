@@ -50,7 +50,7 @@ class TestClass:
 
             # TODO: add handling for all other messages here
 
-        # these neeed to be defined within the init method to work properly
+            # these neeed to be defined within the init method to work properly
         @self.on_attribute('*')
         def attribute_listener_test(self, name, data):
             ''' dummy listener that is registered for all attribute changes '''
@@ -62,7 +62,7 @@ class TestClass:
             # TODO: need to make more specific attribute listeners with specific capabilities
 
         @self.on_attribute('gps')
-        def gps_listener_test(self, name, data):            
+        def gps_listener_test(self, name, data):
             # need to be constantly sending commands for PX4 to accept offboard control
             # send a position
             if self.state[0] is False or self.state[1] is False:
@@ -80,7 +80,6 @@ class TestClass:
                 self.mavconn.arm()
                 print("arming")
 
-
     def on_attribute(self, name):
         """
         decorator for being able to add a listener for a specific attribute
@@ -92,7 +91,6 @@ class TestClass:
                     self.add_attribute_listener(n, fn)
             else:
                 self.add_attribute_listener(name, fn)
-
 
         return decorator
 
@@ -139,7 +137,7 @@ class TestClass:
 
     def run_loop(self):
         ''' function that effectively is a 5Hz loop '''
-        desired_rate = 1/5.0  # NOTE: PX4 needs at least 2(?) Hz
+        desired_rate = 1 / 5.0  # NOTE: PX4 needs at least 2(?) Hz
 
         takeoff = False
 
@@ -158,7 +156,7 @@ class TestClass:
 
             '''
             if self.state[1] is False:
-                self.mavconn.take_control()  # request offboard control of the vehicle
+                self.mavconn.take_control()  # request offboard control of the drone
                 print("requesting offboard control")
 
             elif self.state[0] is False:
@@ -173,9 +171,7 @@ class TestClass:
                 takeoff = True
             '''
 
-
             # TODO: add sending of messages through the connection
-            
 
     @property
     def gps_position(self):
@@ -184,8 +180,6 @@ class TestClass:
     @property
     def state(self):
         return [self._armed, self._offboard]
-
-    
 
 
 test = TestClass()
