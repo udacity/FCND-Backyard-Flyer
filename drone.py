@@ -87,7 +87,7 @@ class Drone:
 
     @property
     def global_position(self):
-        return np.array([self._longitude, self._latitude, self._altitude], dtype=np.int32)
+        return np.array([self._longitude, self._latitude, self._altitude])
 
     def _update_global_position(self, msg):
         self._longitude = msg.longitude
@@ -96,7 +96,7 @@ class Drone:
 
     @property
     def global_home(self):
-        return np.array([self._home_longitude, self._home_latitude, self._home_altitude], dtype=np.int32)
+        return np.array([self._home_longitude, self._home_latitude, self._home_altitude])
 
     def _update_global_home(self, msg):
         self._home_longitude = msg.longitude
