@@ -10,7 +10,6 @@ import time
 class Drone:
 
     def __init__(self, protocol='tcp', ip_addr='127.0.0.1', port=5760, threaded=True):
-
         comm_addr = '{0}:{1}:{2}'.format(protocol, ip_addr, port)
         self.connection = mc.MavlinkConnection(comm_addr, threaded=threaded)
 
@@ -79,7 +78,7 @@ class Drone:
 
     @property
     def global_position(self):
-        return np.array([self._longitude, self._latitude, self._altitude])
+        return np.array([self._longitude, self._latitude, self._altitude], dtype=np.int32)
 
     def _update_global_position(self, msg):
         self._longitude = msg.longitude
@@ -88,7 +87,7 @@ class Drone:
 
     @property
     def global_home(self):
-        return np.array([self._home_longitude, self._home_latitude, self._home_altitude])
+        return np.array([self._home_longitude, self._home_latitude, self._home_altitude], dtype=np.int32)
 
     def _update_global_home(self, msg):
         self._home_longitude = msg.longitude
@@ -100,7 +99,6 @@ class Drone:
         return np.array([self._north, self._east, self._down])
 
     def _update_local_position(self, msg):
-
         self._north = msg.north
         self._east = msg.east
         self._down = msg.down
@@ -295,7 +293,10 @@ class Drone:
                 print('>>> Exception in message handler for %s' % name)
                 print('>>> ' + str(e))
 
-    #Command method wrappers
+    #
+    # Command method wrappers
+    #
+
     def connect(self):
         ''' Conect to the specified device'''
         self.connection.start()
