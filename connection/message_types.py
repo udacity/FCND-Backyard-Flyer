@@ -25,6 +25,9 @@ Attributes:
     MSG_ATTITUDE: name of attitude message [FrameMessage]
 """
 
+import math
+import numpy as np
+
 # enum for he names to use for setting callbacks
 # this is to ensure that all the files are using the same names for the messages
 # implementations should use the variable names instead of the strings to minimize typo based errors
