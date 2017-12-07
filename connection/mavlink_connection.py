@@ -74,8 +74,9 @@ class MavlinkConnection(connection.Connection):
         
         # need a command loop to be able to continually send certain commands
         # at the desired rate when working with PX4
-        self._write_handle = threading.Thread(target=self.command_loop)
-        self._write_handle.daemon = True
+        if PX4:
+            self._write_handle = threading.Thread(target=self.command_loop)
+            self._write_handle.daemon = True
 
         # management
         self._running = False
