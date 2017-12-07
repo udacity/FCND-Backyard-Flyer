@@ -14,11 +14,13 @@ class Drone:
         self.connection = mc.MavlinkConnection(comm_addr, threaded=threaded)
 
         # Global position in degrees (int)
+        # Altitude is in meters
         self._longitude = 0
         self._latitude = 0
         self._altitude = 0
 
-        #Reference home position in degrees (int)
+        # Reference home position in degrees (int)
+        # Altitude is in meters
         self._home_longitude = 0
         self._home_latitude = 0
         self._home_altitude = 0
