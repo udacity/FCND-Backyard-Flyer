@@ -132,16 +132,14 @@ class MavlinkConnection(connection.Connection):
             # parse out the message based on the type and call
             # the appropriate callbacks
             if msg.get_type() == 'GLOBAL_POSITION_INT':
-                print("global: {}, {}, {}".format(msg.lat, msg.lon, msg.alt))
                 # parse out the gps position and trigger that callback
-                gps = mt.GlobalFrameMessage(timestamp, float(msg.lat)/1e7, 
-                                            float(msg.lon)/1e7,
-                                            float(msg.alt)/1000)
+                gps = mt.GlobalFrameMessage(
+                    timestamp, float(msg.lat) / 1e7, float(msg.lon) / 1e7, float(msg.alt) / 1000
+                )
                 self.notify_message_listeners(mt.MSG_GLOBAL_POSITION, gps)
 
                 # parse out the velocity and trigger that callback
-                vel = mt.LocalFrameMessage(timestamp, float(msg.vx)/100,
-                                           float(msg.vy)/100, float(msg.vx)/100)
+                vel = mt.LocalFrameMessage(timestamp, float(msg.vx) / 100, float(msg.vy) / 100, float(msg.vx) / 100)
                 self.notify_message_listeners(mt.MSG_VELOCITY, vel)
 
             elif msg.get_type() == 'HEARTBEAT':
@@ -161,7 +159,6 @@ class MavlinkConnection(connection.Connection):
                 self.notify_message_listeners(mt.MSG_STATE, state)
 
             elif msg.get_type() == 'LOCAL_POSITION_NED':
-                print("local: {}, {}, {}".format(msg.x, msg.y, msg.z))
                 # parse out the local positin and trigger that callback
                 pos = mt.LocalFrameMessage(timestamp, msg.x, msg.y, msg.z)
                 self.notify_message_listeners(mt.MSG_LOCAL_POSITION, pos)
@@ -171,9 +168,9 @@ class MavlinkConnection(connection.Connection):
                 self.notify_message_listeners(mt.MSG_VELOCITY, vel)
 
             elif msg.get_type() == 'HOME_POSITION':
-                home = mt.GlobalFrameMessage(timestamp, float(msg.latitude)/1e7,
-                                             float(msg.longitude)/1e7,
-                                             float(msg.altitude)/1000)
+                home = mt.GlobalFrameMessage(
+                    timestamp, float(msg.latitude) / 1e7, float(msg.longitude) / 1e7, float(msg.altitude) / 1000
+                )
                 self.notify_message_listeners(mt.MSG_GLOBAL_HOME, home)
 
             elif msg.get_type() == 'SCALED_IMU':
@@ -192,12 +189,14 @@ class MavlinkConnection(connection.Connection):
                 # TODO parse orientation
                 direction = 0
                 orientation = msg.orientation
-                meas = mt.DistanceSensorMessage(timestamp,
-                                                float(msg.min_distance)/100,
-                                                float(msg.max_distance)/100,
-                                                direction,
-                                                float(msg.current_distance)/100,
-                                                float(msg.covariance)/100)
+                meas = mt.DistanceSensorMessage(
+                    timestamp,
+                    float(msg.min_distance) / 100,
+                    float(msg.max_distance) / 100,
+                    direction,
+                    float(msg.current_distance) / 100,
+                    float(msg.covariance) / 100
+                )
                 self.notify_message_listeners(mt.MSG_DISTANCE_SENSOR, meas)
 
             elif msg.get_type() == 'POSITION_TARGET_LOCAL_NED':
