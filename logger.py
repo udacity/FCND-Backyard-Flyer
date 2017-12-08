@@ -1,19 +1,15 @@
-# -*- coding: utf-8 -*-
 import numpy as np
 import os
 
-
 class Logger:
 
-    def __init__(self, *args):
-        if len(args) == 0:
-            filename = os.path.join("Logs", "NavLog.txt")
-        if len(args) == 1:
-            filename = os.path.join("Logs", args[0])
-        elif len(args) == 2:
-            filename = os.path.join(args[0], args[1])
+    def __init__(self, directory='Logs', filename='NavLog.txt'):
+        filepath = os.path.join(directory, filename)
+        print(filepath)
+        if not os.path.exists(filepath):
+            os.makedirs(os.path.dirname(filepath))
 
-        self.log = open(filename, 'w')
+        self.log = open(filepath, 'w')
         self.num_data = 0
         self.open = True
 
