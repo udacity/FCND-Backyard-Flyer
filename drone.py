@@ -312,10 +312,6 @@ class Drone:
     # Command method wrappers
     #
 
-    def disconnect(self):
-        self.connection.stop()
-        self._connected = False
-
     def arm(self):
         """Send an arm command to the drone"""
         try:
@@ -414,11 +410,18 @@ class Drone:
 
     def start(self):
         """Starts the connection to the drone"""
+        
+        # start the connection
         self.connection.start()
 
     def stop(self):
         """Stops the connection to the drone and closes the log"""
-        self.disconnect()
+        
+        # stop the connection
+        self.connection.stop()
+        self._connected = False
+
+        # close the telemetry log
         self.tlog.close()
 
     def run(self):
