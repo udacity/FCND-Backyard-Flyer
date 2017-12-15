@@ -23,12 +23,6 @@ Autonomous control will be done using an event-driven state machine. First, you 
 
 Telemetry data from the drone is logged for review after the flight. You will use the logs to plot the trajectory of the drone and analyze the performance of the task. For more information check out the Flight Log section below...
 
-## Drone Simulator
-
-The next step is to download the simulator build that's appropriate for your operating system. Here are the links for [Linux]( https://d17h27t6h515a5.cloudfront.net/topher/2017/November/5a1f3863_fcnd-linux-backyard-flyer/fcnd-linux-backyard-flyer.zip "Linux"), [Mac](https://d17h27t6h515a5.cloudfront.net/topher/2017/November/5a1f38da_fcnd-macos-backyard-flyer/fcnd-macos-backyard-flyer.zip "Mac"), or [Windows](https://d17h27t6h515a5.cloudfront.net/topher/2017/November/5a1f3928_fcnd-windows-backyard-flyer/fcnd-windows-backyard-flyer.zip "Windows").
-
-You can manually fly the drone using the instructions provided in the simulator's readme.
-
 ## Drone API
 
 A wrapper `Drone` superclass was written to handle all the communication between Python and the drone simulator. The `Drone` class contains commands to be passed to the simulator and allows students to register callbacks/listeners on messages coming from the simulator. The goal of this project is to design a subclass from the Drone class implementing a state machine to autonomously fly a box. A subclass is started for you in `backyard_flyer.py`
