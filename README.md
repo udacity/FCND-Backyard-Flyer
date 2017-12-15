@@ -1,10 +1,21 @@
 # FCND - Backyard Flyer Project
-This project is intended to walk you through the first steps of autonomously flying a drone. You will be using flying a quadcopter in simulation developed in Unity. After completing this assigment, you will be fimiliar with passing commands and receiving incoming data from the drone. You will also set up a state machine using event-driven programming.
+In this project, you'll set up a state machine using event-driven programming to autonomously flying a drone. You will be using flying a quadcopter in Unity simulator. After completing this assigment, you'll be fimiliar with sending commands and receiving incoming data from the drone. 
 
-The python code you write is similar to how the drone would be controlled from a ground station computer or an onboard companion computer. Since communication with the drone is done using MAVLink, you will be able to use your code to control an PX4 quadcopter autopilot with very little modification!
+The python code you write is similar to how the drone would be controlled from a ground station computer or an onboard flight computer. Since communication with the drone is done using MAVLink, you will be able to use your code to control an PX4 quadcopter autopilot with very little modification!
+
+## Step 1: Download the Simulator
+If you haven't already, download the version of the simulator that's appropriate for your operating system [from this repository](https://github.com/udacity/FCND-Simulator/releases).
+
+## Step 2: Set up your Python Environment
+If you haven't already, set up your Python environment and get all the relevant packages installed using Anaconda following instructions in [this repository](https://github.com/udacity/FCND-Term1-Starter-Kit)
+
+## Step 3: Clone this Repository
+```sh
+git clone https://github.com/udacity/FCND-Backyard-Flyer
+```
 
 ## Task
-The required task is to command the drone to fly a 10 meter box at a 3 meter altitude. This box will flown in two ways: manual control and autonomous control.
+The required task is to command the drone to fly a 10 meter box at a 3 meter altitude. You'll fly this path in two ways: first using manual control and then under autonomous control.
 
 Manual control of the drone is done using the instructions found with the simulator.
 
@@ -12,83 +23,9 @@ Autonomous control will be done using an event-driven state machine. First, you 
 
 Telemetry data from the drone is logged for review after the flight. You will use the logs to plot the trajectory of the drone and analyze the performance of the task. For more information check out the Flight Log section below...
 
-## Getting Started
-
-You'll need Python 3. Anaconda now comes standard with Python 3 and several pre-installed packages. In addition to the standard Anaconda packages, this project will also require the following:
-
-* pymavlink (Python implementation of MAVLink commands)
-
-* utm (For conversion between Local and Global coordinate frames)
-
-* lxml
-
-* future
-
-The instructions below walk through the steps for getting a Python environment set up with the appropriate dependencies.
-
-
-Make sure you have [Anaconda](https://www.anaconda.com/download/) installed, this is required to create the project environment.
-
-Creating the environment:
-
-```sh
-conda env create -f environment.yml
-```
-
-If the environment was installed succesfully you should output similar to the following:
-
-```sh
-Installing collected packages: future, lxml, pymavlink, utm
-Successfully installed future-0.16.0 lxml-4.0.0 pymavlink-2.2.4 utm-0.4.2
-#
-# To activate this environment, use:
-# > source activate backyard-flyer
-#
-# To deactivate an active environment, use:
-# > source deactivate
-#
-```
-
-You can view the environments you have installed with:
-
-```sh
-$ conda env list
-
-# Sample output
-# conda environments:
-#
-backyard-flyer           /usr/local/anaconda3/envs/backyard-flyer
-root                  *  /usr/local/anaconda3
-```
-
-In order to use the environment you must activate it. Activating the environment:
-
-```sh
-source activate backyard-flyer
-```
-
-Deactivating the environment:
-
-```sh
-source deactivate
-```
-
-Once you've installed the environment you can cleanup unused packages and tarballs:
-
-```sh
-conda clean -tpy
-```
-
-Removing the environment:
-
-```sh
-conda env remove -n backyard-flyer
-```
-
 ## Drone Simulator
 
 The next step is to download the simulator build that's appropriate for your operating system. Here are the links for [Linux]( https://d17h27t6h515a5.cloudfront.net/topher/2017/November/5a1f3863_fcnd-linux-backyard-flyer/fcnd-linux-backyard-flyer.zip "Linux"), [Mac](https://d17h27t6h515a5.cloudfront.net/topher/2017/November/5a1f38da_fcnd-macos-backyard-flyer/fcnd-macos-backyard-flyer.zip "Mac"), or [Windows](https://d17h27t6h515a5.cloudfront.net/topher/2017/November/5a1f3928_fcnd-windows-backyard-flyer/fcnd-windows-backyard-flyer.zip "Windows").
-
 
 You can manually fly the drone using the instructions provided in the simulator's readme.
 
@@ -313,12 +250,5 @@ def global_to_local(global_position, global_home):
 
 * A short write-up (.md or .pdf)
 
-## Project Walkthrough
-
-TODO: Film a YouTube step through of the project
-
-## Modifications for PX4
-
-TODO: This would be nice to have, but isn't a top priority
 
 
