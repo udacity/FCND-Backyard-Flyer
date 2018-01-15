@@ -5,11 +5,14 @@ Created on Tue Oct 24 16:17:28 2017
 @author: steve
 """
 
-from drone import Drone
-from enum import Enum
-from connection import message_types as mt
-import numpy as np
 import time
+from enum import Enum
+
+import numpy as np
+
+from udacidrone import Drone
+from udacidrone.connection import MavlinkConnection, WebSocketConnection  # noqa: F401
+from udacidrone.messaging import MsgID
 
 
 class States(Enum):
@@ -23,48 +26,44 @@ class States(Enum):
 
 class BackyardFlyer(Drone):
 
-    def __init__(self, protocol='tcp', ip_addr='127.0.0.1', port=5760, baud=921600, threaded=True, PX4=False):
-        super().__init__(protocol=protocol, ip_addr=ip_addr, port=port, baud=baud, threaded=threaded, PX4=PX4)
-        # The position the drone is currently flying to.
-        # This should be used to liftoff, land and transition to waypoints.
+    def __init__(self, connection):
+        super().__init__(connection)
         self.target_position = np.array([0.0, 0.0, 0.0])
-        # self.global_home = np.array([0.0,0.0,0.0])  # can't set this here, no setter for this property
         self.all_waypoints = []
         self.in_mission = True
         self.check_state = {}
 
         # initial state
         self.flight_state = States.MANUAL
-        self.whatever = States.MANUAL
 
-    def callbacks(self):
-        """ Define your callbacks within here"""
-        super().callbacks()
+        # TODO: Register all your callbacks here
+        self.register_callback(MsgID.LOCAL_POSITION, self.local_position_callback)
+        self.register_callback(MsgID.LOCAL_VELOCITY, self.velocity_callback)
+        self.register_callback(MsgID.STATE, self.state_callback)
 
-        @self.msg_callback(mt.MSG_STATE)
-        def state_callback(msg_name, msg):
-            """TODO: FIll out this callback (if required)
-            
-            For example:
-                if self.state==States.MANUAL:
-                    self.arming_transition()
-            """
-            pass
+    def local_position_callback(self):
+        """
+        TODO: Implement this method
 
-        @self.msg_callback(mt.MSG_GLOBAL_POSITION)
-        def global_position_callback(msg_name, msg):
-            """TODO: Fill out this callback (if required)"""
-            pass
+        This triggers when `MsgID.LOCAL_POSITION` is received
+        """
+        pass
 
-        @self.msg_callback(mt.MSG_LOCAL_POSITION)
-        def local_position_callback(msg_name, msg):
-            """TODO: Fill out this callback (if required)"""
-            pass
+    def velocity_callback(self):
+        """
+        TODO: Implement this method
 
-        @self.msg_callback(mt.MSG_VELOCITY)
-        def velocity_callback(msg_name, msg):
-            """TODO: FIll out this callback (if required)"""
-            pass
+        This triggers when `MsgID.LOCAL_VELOCITY` is received
+        """
+        pass
+
+    def state_callback(self):
+        """
+        TODO: Implement this method
+
+        This triggers when `MsgID.STATE` is received
+        """
+        pass
 
     def calculate_box(self):
         """TODO: Fill out this method
@@ -134,16 +133,21 @@ class BackyardFlyer(Drone):
     def start(self):
         """This method is provided
         
-        1. Start the drone
+        1. Open a log file
+        2. Start the drone connection
+        3. Close the log file
         """
-        super().start()
-
-        #Only required if they do threaded
-        #while self.in_mission:
-        #    pass
+        print("Creating log file")
+        self.start_log("Logs", "NavLog.txt")
+        print("starting connection")
+        self.connection.start()
+        print("Closing log file")
+        self.stop_log()
 
 
 if __name__ == "__main__":
-    drone = BackyardFlyer(threaded=False)
+    conn = MavlinkConnection('tcp:127.0.0.1:5760', threaded=False, PX4=False)
+    # conn = WebSocketConnection('ws://127.0.0.1:5760')
+    drone = BackyardFlyer(conn)
     time.sleep(2)
     drone.start()
