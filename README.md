@@ -1,5 +1,5 @@
 # FCND - Backyard Flyer Project
-In this project, you'll set up a state machine using event-driven programming to autonomously flying a drone. You will be using flying a quadcopter in Unity simulator. After completing this assigment, you'll be fimiliar with sending commands and receiving incoming data from the drone. 
+In this project, you'll set up a state machine using event-driven programming to autonomously flying a drone. You will be using flying a quadcopter in Unity simulator. After completing this assignment, you'll be familiar with sending commands and receiving incoming data from the drone. 
 
 The python code you write is similar to how the drone would be controlled from a ground station computer or an onboard flight computer. Since communication with the drone is done using MAVLink, you will be able to use your code to control an PX4 quadcopter autopilot with very little modification!
 
@@ -25,99 +25,72 @@ Telemetry data from the drone is logged for review after the flight. You will us
 
 ## Drone API
 
-A wrapper `Drone` superclass was written to handle all the communication between Python and the drone simulator. The `Drone` class contains commands to be passed to the simulator and allows students to register callbacks/listeners on messages coming from the simulator. The goal of this project is to design a subclass from the Drone class implementing a state machine to autonomously fly a box. A subclass is started for you in `backyard_flyer.py`
+To communicate with the simulator (and a real drone), you will be using the [UdaciDrone API](https://udacity.github.io/udacidrone/).  This API handles all the communication between Python and the drone simulator.  A key element of the API is the `Drone` superclass that contains the commands to be passed to the simulator and allows you to register callbacks/listeners on changes to the drone's attributes.  The goal of this project is to design a subclass from the Drone class implementing a state machine to autonomously fly a box. A subclass is started for you in `backyard_flyer.py`
 
-### Incoming Message Types
+### Drone Attributes
 
-The following incoming message types are available for the Backyard Flyer Project:
+The `Drone` class contains the following attributes that you may find useful for this project:
 
-* `state_msg`: Information about whether the drone is armed and in guided mode
-* `global_position_msg`: latitude, longitude, altitude
-* `local_position_msg`: local north, local east, local down
-* `local_velocity_msg`: local north velocity, local east velocity, local vertical velocity (positive up)
+ - `self.armed`: boolean for the drone's armed state
+ - `self.guided`: boolean for the drone's guided state (if the script has control or not)
+ - `self.local_position`: a vector of the current position in NED coordinates
+ - `self.local_velocity`: a vector of the current velocity in NED coordinates
 
-All message types also contain the time. More information about the properties of each message can be found in `message_types.py`. The data for these messages are retrieved using callbacks.
+For a detailed list of all of the attributes of the `Drone` class [check out the UdaciDrone API documentation](https://udacity.github.io/udacidrone/).
+
 
 ### Registering Callbacks
 
-The incoming message data is receiving using callbacks. These methods are only called when a message of their respective type is received. There are two ways to register a callback:
+As the simulator passes new information about the drone to the Python `Drone` class, the various attributes will be updated.  Callbacks are functions that can be registered to be called when a specific set of attributes are updated.  There are two steps needed to be able to create and register a callback:
 
-1. Using the `@msg_callback(msg_type)` decorator (preferred):
+1. Create the callback function:
 
-Callbacks registered using decorators need to be defined (and decorated) within the 'callback' method. The callbacks method is called on initialization to register all the defined callbacks.
-
-```python
-def callbacks(self):
-	""" Define your callbacks within here"""
-	super().callbacks()
-	
-    @self.msg_callback(message_types.MSG_GLOBAL_POSITION)
-	def global_position_listener(name, global_position):
-		# do whatever with the global_position, which will be of type GlobalPosition
-```
-
-
-
-2. Registering the callback for the respective message: 
+Each callback function you may want needs to be defined as a member function of the `BackyardFlyer` class provided to you in `backyard_flyer.py` that takes in only the `self` parameter.  You will see in the template provided to you in `backyard_flyer.py` three such callback methods you may find useful have already been defined.  For example, here is the definition of one of the callback methods:
 
 ```python
-self.add_message_listener(message_types.MSG_GLOBAL_POSITION, self.global_position_listener)
+class BackyardFlyer(Drone):
+    ...
 
-def global_position_listener(self, name, global_position):
-	# do whatever you want with the global_position, which will be of type GlobalPosition
+    def local_position_callback(self):
+        """ this is triggered when self.local_position contains new data """
+        pass
 ```
 
-A callback for all message types can be registered uisng, '*':
+2. Register the callback:
+
+In order to have your callback function called when the appropriate attributes are updated, each callback needs to be registered.  This registration takes place in you `BackyardFlyer`'s `__init__()` function as shown below:
 
 ```python
-@self.msg_callback('*')
-def all_msg_listener(name, msg):
-	# this is a listener for all message types, so break out the msg as defined by the name
+class BackyardFlyer(Drone):
+
+    def __init__(self, connection):
+        ...
+
+        # TODO: Register all your callbacks here
+        self.register_callback(MsgID.LOCAL_POSITION, self.local_position_callback)
 ```
 
-or
+Since callback functions are only called when certain drone attributes are changed, the first parameter to the callback registration indicates for which attribute changes you want the callback to occur.  For example, here are some message id's that you may find useful (for a more detailed list, see the UdaciDrone API documentation):
 
-```python
-self.add_message_listener('*',self.all_msg_listener)
-def all_msg_listener(self,name, msg):
-	# this is a listener for all message types, so break out the msg as defined by the name
-```
-        
-
-### drone Attributes
-
-Besides being passed to appropriate callbacks, the message data is also saved into the following attributes of the Drone class:
-
-* `global_position`: latitude (deg), longitude (deg), altitude (meter)
-* `local_position`: north (meter), east (meter), down (meter)
-* `local_velocity`: north velocity (m/s), east velocity (m/s), vertical velocity (m/s, positive down)
-* `armed`: True/False
-* `guided`: True/False
-
-drone attribute can be used if information is required from multiple messages. For example:
-
-```python
-@self.msg_callback(message_types.MSG_GLOBAL_POSITION)
-	def global_position_listener(name, global_position):
-		if msg.global_position[2] < 0.05: # Checks the global altitude
-        	if self.local_velocity[2] < 0.05 # Checks the latest drone velocity, since it isn't part of the message
-```
+ - `MsgID.LOCAL_POSITION`: updates the `self.local_position` attribute
+ - `MsgID.LOCAL_VELOCITY`: updates the `self.local_velocity` attribute
+ - `MsgID.STATE`: updates the `self.guided` and `self.armed` attributes
 
 
 ### Outgoing Commands
 
-The following commands are implemented for the Backyard Flyer Project:
+The UdaciDrone API's `Drone` class also contains function to be able to send commands to the drone.  Here is a list of commands that you may find useful during the project:
 
-* `connect()`: Starts receiving messages from the drone. Blocks the code until the first message is received
-* `start()`: Start receiving messages from the drone. If the connection is not threaded, this will block the code.
-* `arm()`: Arms the motors of the quad, the rotors will spin slowly. The drone cannot takeoff until armed first
-* `disarm()`: Disarms the motors of the quad. The quadcopter cannot be disarmed in the air
-* `take_control()`: Set the command mode of the quad to guided
-* `release_control()`: Set the command mode of the quad to manual
-* `cmd_position(north, east, down, heading)`: Command the drone to travel to the local position (north, east, down). Also commands the quad to maintain a specified heading
-* `takeoff(target_altitude)`: Takeoff from the current location to the specified global altitude
-* `land()`: Land in the current position
-* `stop()`: Terminate the connection with the drone and close the telemetry log
+ - `connect()`: Starts receiving messages from the drone. Blocks the code until the first message is received
+ - `start()`: Start receiving messages from the drone. If the connection is not threaded, this will block the code.
+ - `arm()`: Arms the motors of the quad, the rotors will spin slowly. The drone cannot takeoff until armed first
+ - `disarm()`: Disarms the motors of the quad. The quadcopter cannot be disarmed in the air
+ - `take_control()`: Set the command mode of the quad to guided
+ - `release_control()`: Set the command mode of the quad to manual
+ - `cmd_position(north, east, down, heading)`: Command the drone to travel to the local position (north, east, down). Also commands the quad to maintain a specified heading
+ - `takeoff(target_altitude)`: Takeoff from the current location to the specified global altitude
+ - `land()`: Land in the current position
+ - `stop()`: Terminate the connection with the drone and close the telemetry log
 
 These can be called directly from other methods within the drone class:
 
@@ -157,11 +130,11 @@ When starting the drone manually from a python/ipython shell you have the option
 
 The telemetry data is automatically logged in "Logs\TLog.txt" or "Logs\TLog-manual.txt" for logs created when running `python drone.py`. Each row contains a comma seperated representation of each message. The first row is the incoming message type. The second row is the time. The rest of the rows contains all the message properties. The types of messages relevant to this project are:
 
-* `state_msg`: time (ms), armed (bool), guided (bool)
-* `global_position_msg`: time (ms), longitude (deg), latitude (deg), altitude (meter)
-* `global_home_msg`: time (ms), longitude (deg), latitude (deg), altitude (meter)
-* `local_position_msg`: time (ms), north (meter), east (meter), down (meter)
-* `local_velocity_msg`: time (ms), north (meter), east (meter), down (meter) 
+* `MsgID.STATE`: time (ms), armed (bool), guided (bool)
+* `MsgID.GLOBAL_POSITION`: time (ms), longitude (deg), latitude (deg), altitude (meter)
+* `MsgID.GLOBAL_HOME`: time (ms), longitude (deg), latitude (deg), altitude (meter)
+* `MsgID.LOCAL_POSITION`: time (ms), north (meter), east (meter), down (meter)
+* `MsgID.LOCAL_VELOCITY`: time (ms), north (meter), east (meter), down (meter) 
 
 
 #### Reading Telemetry Logs
@@ -172,13 +145,13 @@ Logs can be read using:
 t_log = Drone.read_telemetry_data(filename)
 ```
 
-The data is stored as a dictionary of message types. For each message type, there is a list of numpy arrays. For example, to access the longitude and latitude from a `global_position_msg`:
+The data is stored as a dictionary of message types. For each message type, there is a list of numpy arrays. For example, to access the longitude and latitude from a `MsgID.GLOBAL_POSITION`:
 
 ```python
 # Time is always the first entry in the list
-time = t_log['global_position_msg'][0][:]
-longitude = t_log['global_position_msg'][1][:]
-latitude = t_log['global_position_msg'][2][:]
+time = t_log['MsgID.GLOBAL_POSITION'][0][:]
+longitude = t_log['MsgID.GLOBAL_POSITION'][1][:]
+latitude = t_log['MsgID.GLOBAL_POSITION'][2][:]
 ```
 
 The data between different messages will not be time synced since they are recorded at different times.
@@ -199,17 +172,18 @@ The six states predefined for the state machine:
 While the drone is in each state, you will need to check transition criteria with a registered callback. If the transition criteria are met, you will set the next state and pass along any commands to the drone. For example:
 
 ```python
-@self.on_message(mt.MSG_STATE)
-def state_callback(msg_name, msg):
+def state_callback(self):
 	if self.state == States.DISARMING:
-    	if ~msg.armed:
+    	if !self.armed:
         	self.release_control()
         	self.in_mission = False
         	self.state = States.MANUAL
 ```
+
 This is a callback on the state message. It only checks anything if it's in the DISARMING state. If it detects that the drone is successfully disarmed, it sets the mode back to manual and terminates the mission.       
 
 ### Running the State Machine
+
 After filling in the appropriate callbacks, you will run the mission:
 
 ```sh
@@ -217,7 +191,6 @@ python backyard_flyer.py
 ```
 
 Similar to the manual flight, the GPS data is automatically logged to the specified log file.
-
 
 
 ### Reference Frames

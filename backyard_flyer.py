@@ -45,7 +45,7 @@ class BackyardFlyer(Drone):
         """
         TODO: Implement this method
 
-        This triggers when `MsgID.LOCAL_POSITION` is received
+        This triggers when `MsgID.LOCAL_POSITION` is received and self.local_position contains new data
         """
         pass
 
@@ -53,7 +53,7 @@ class BackyardFlyer(Drone):
         """
         TODO: Implement this method
 
-        This triggers when `MsgID.LOCAL_VELOCITY` is received
+        This triggers when `MsgID.LOCAL_VELOCITY` is received and self.local_velocity contains new data
         """
         pass
 
@@ -61,7 +61,7 @@ class BackyardFlyer(Drone):
         """
         TODO: Implement this method
 
-        This triggers when `MsgID.STATE` is received
+        This triggers when `MsgID.STATE` is received and self.armed and self.guided contain new data
         """
         pass
 
