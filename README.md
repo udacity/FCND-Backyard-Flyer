@@ -211,11 +211,5 @@ def global_to_local(global_position, global_home):
 
 * Filled in backyard_flyer.py
 
-* An x-y (East-North or Long-Lat) plot of the drone trajectory while manually flying the box
-
-* An x-y (East-North or Long-Lat) plot of the drone trajectory from autonomously flying the box
-
-* A short write-up (.md or .pdf)
-
 
 
