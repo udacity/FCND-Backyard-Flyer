@@ -111,9 +111,11 @@ To stop logging data, stop the simulator first and the script will automatically
 Alternatively, the drone can be manually started/stopped from a python/ipython shell:
 
 ```python
-from drone import Drone
-drone = Drone()
-drone.start(threaded=True, tlog_name="TLog-manual.txt")
+from udacidrone import Drone
+from udacidrone.connection import MavlinkConnection
+conn = MavlinkConnection('tcp:127.0.0.1:5760', threaded=False)
+drone = Drone(conn,tlog_name="TLog-manual.txt")
+drone.start()
 ```
 
 If `threaded` is set to `False`, the code will block and the drone logging can only be stopped by terminating the simulation. If the connection is threaded, the drone can be commanded using the commands described above, and the connection can be stopped (and the log properly closed) using:
