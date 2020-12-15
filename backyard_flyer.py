@@ -75,6 +75,11 @@ class BackyardFlyer(Drone):
         4. Transition to the ARMING state
         """
         print("arming transition")
+        self.take_control()
+        self.arm()
+        long, lat, alt = self.global_position
+        self.set_home_position(long, lat, alt)
+        self.flight_state = States.ARMING
 
     def takeoff_transition(self):
         """TODO: Fill out this method
@@ -84,6 +89,10 @@ class BackyardFlyer(Drone):
         3. Transition to the TAKEOFF state
         """
         print("takeoff transition")
+        target_alt = 3.0
+        self.target_position[2] = target_alt
+        self.takeoff(target_alt)
+        self.flight_state = States.TAKEOFF
 
     def waypoint_transition(self):
         """TODO: Fill out this method
@@ -92,6 +101,7 @@ class BackyardFlyer(Drone):
         2. Transition to WAYPOINT state
         """
         print("waypoint transition")
+        self.
 
     def landing_transition(self):
         """TODO: Fill out this method
@@ -137,6 +147,7 @@ class BackyardFlyer(Drone):
         self.connection.start()
         print("Closing log file")
         self.stop_log()
+
 
 
 if __name__ == "__main__":
