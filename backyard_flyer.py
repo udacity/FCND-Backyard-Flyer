@@ -101,7 +101,12 @@ class BackyardFlyer(Drone):
         2. Transition to WAYPOINT state
         """
         print("waypoint transition")
-        self.
+        _, _, alt = self.target_position
+        self.all_waypoints.push([15, 15, alt])
+        self.all_waypoints.push([0, 30, alt])
+        self.all_waypoints.push([-15, 15, alt])
+        self.all_waypoints.push([0, 0, alt])
+        self.flight_state = States.WAYPOINT
 
     def landing_transition(self):
         """TODO: Fill out this method
@@ -110,6 +115,8 @@ class BackyardFlyer(Drone):
         2. Transition to the LANDING state
         """
         print("landing transition")
+        self.land()
+        self.flight_state = States.LANDING
 
     def disarming_transition(self):
         """TODO: Fill out this method
@@ -118,6 +125,8 @@ class BackyardFlyer(Drone):
         2. Transition to the DISARMING state
         """
         print("disarm transition")
+        self.disarm()
+        self.flight_state = States.DISARMING
 
     def manual_transition(self):
         """This method is provided
