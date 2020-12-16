@@ -35,12 +35,43 @@ class BackyardFlyer(Drone):
         self.register_callback(MsgID.LOCAL_VELOCITY, self.velocity_callback)
         self.register_callback(MsgID.STATE, self.state_callback)
 
+    def prepare_flight_plan(self, alt):
+        # _, _, alt = self.target_position
+        self.all_waypoints.push(np.array([15, 15, alt]))
+        self.all_waypoints.push(np.array([0, 30, alt]))
+        self.all_waypoints.push(np.array([-15, 15, alt]))
+        self.all_waypoints.push(np.array([0, 0, alt]))
+
     def local_position_callback(self):
         """
         TODO: Implement this method
 
         This triggers when `MsgID.LOCAL_POSITION` is received and self.local_position contains new data
         """
+        flight_plan_is_empty = len(self.all_waypoints) == 0
+
+        if self.flight_state == States.TAKEOFF:
+            _, _, target_alt = self.target_position
+            _, _, current_alt = self.local_position
+
+            if flight_plan_is_empty:
+                self.prepare_flight_plan(target_alt)
+
+            drone_reached_altitude = current_alt > target_alt * .95
+            if drone_reached_altitude:
+                self.waypoint_transition()
+
+        elif self.flight_state == States.WAYPOINT:
+            if flight_plan_is_empty:
+                self.landing_transition()
+            else:
+                current_destination = self.all_waypoints[0]
+                distance_left = np.linalg.norm(current_destination - self.local_position)
+
+                target_destination_reached = distance_left < 0.5
+                if target_destination_reached:
+                    self.all_waypoints.pop(0)
+                    self.waypoint_transition()
         pass
 
     def velocity_callback(self):
@@ -101,11 +132,8 @@ class BackyardFlyer(Drone):
         2. Transition to WAYPOINT state
         """
         print("waypoint transition")
-        _, _, alt = self.target_position
-        self.all_waypoints.push([15, 15, alt])
-        self.all_waypoints.push([0, 30, alt])
-        self.all_waypoints.push([-15, 15, alt])
-        self.all_waypoints.push([0, 0, alt])
+        n, e, alt = self.all_waypoints[0]
+        self.cmd_position(n, e, alt, 0)
         self.flight_state = States.WAYPOINT
 
     def landing_transition(self):
